@@ -28,6 +28,9 @@ void timer_ndelay (int64_t nanoseconds);
 
 void timer_print_stats (void);
 
+int64_t time_from_elem(const struct list_elem *e);
+bool compare_threadtimes(const struct list_elem *e1, const struct list_elem *e2, void* aux);
+
 // A struct containing a thread and its wake-up time
 struct thread_time
 {

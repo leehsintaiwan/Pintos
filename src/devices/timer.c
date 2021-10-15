@@ -91,7 +91,7 @@ timer_elapsed (int64_t then)
 }
 
 // Returns wake-up time from list_elem
-int64_t time_from_elem(struct list_elem *e)
+int64_t time_from_elem(const struct list_elem *e)
 {
   return list_entry(e, struct thread_time, elem)->time;
 }
