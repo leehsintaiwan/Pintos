@@ -350,8 +350,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  ASSERT(new_priority >= 0 && new_priority <= 63);
-  
+  ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
+
   thread_current ()->priority = new_priority;
 
   /*  Checks all the threads' priorities and yields the current thread
