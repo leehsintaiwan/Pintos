@@ -97,7 +97,7 @@ int64_t time_from_elem(const struct list_elem *e)
 }
 
 // Function comparing the wake-up times of two threads; to be used as a list_less_func
-bool compare_threadtimes(const struct list_elem *e1, const struct list_elem *e2, __attribute__ ((unused)) void* aux)
+bool compare_threadtimes(const struct list_elem *e1, const struct list_elem *e2, void* aux UNUSED)
 {
   int64_t t1 = time_from_elem(e1);
   int64_t t2 = time_from_elem(e2);
