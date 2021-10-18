@@ -5,8 +5,8 @@
 
 /* 17 bits before the decimal point, 14 bits after */
 #define P 17
-#define Q 14
-#define F 1 << Q
+#define Q (31 - P)
+#define F (1 << Q)
 
 /* Conversion macros */
 #define integer_to_fixed_point (n) (n * F)
