@@ -9,8 +9,8 @@
 #define F (1 << Q)
 
 /* Conversion macros */
-#define integer_to_fixed_point (n) (n * F)
-#define fixed_point_to_integer_zero (x) (x / F)
+#define INTEGER_TO_FIXED_POINT (n) (n * F)
+#define FIXED_POINT_TO_INTEGER_ZERO (x) (x / F)
 
 inline int32_t fixed_point_to_integer_nearest (int32_t x)
 {
@@ -18,12 +18,12 @@ inline int32_t fixed_point_to_integer_nearest (int32_t x)
 }
 
 /* Binary operations */
-#define add_fixed_points(x, y) (x + y)
-#define subtract_fixed_points(x, y) (x - y)
-#define add_fixed_and_integer(x, n) (x + n * F)
-#define subtract_integer_from_fixed(x, n) (x - n * F)
-#define multiply_fixed_and_integer(x, n) (x * n)
-#define divide_fixed_by_integer(x, n) (x / n)
+#define ADD_FIXED_POINTS(x, y) (x + y)
+#define SUBTRACT_FIXED_POINTS(x, y) (x - y)
+#define ADD_FIXED_AND_INTEGER(x, n) (x + n * F)
+#define SUBTRACT_INTEGER_FROM_FIXED(x, n) (x - n * F)
+#define MULTIPLY_FIXED_AND_INTEGER(x, n) (x * n)
+#define DIVIDE_FIXED_BY_INTEGER(x, n) (x / n)
 
 inline int64_t multiply_fixed_points (int32_t x, int32_t y)
 {
