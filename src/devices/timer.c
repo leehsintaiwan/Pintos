@@ -116,7 +116,12 @@ timer_sleep (int64_t ticks)
   int64_t wakeup_time = start + ticks; // number of ticks since OS booted when the thread will "wake up"
 
   struct list_elem elem;
-  struct thread_time ctt = {elem, thread_current(), wakeup_time}; // current thread_time
+  struct thread_time ctt; // current thread_time
+  ctt.elem = elem;
+  ctt.thread = thread_current();
+  ctt.time = wakeup_time;
+  sema_init (&(ctt.sema_sleep), 0);
+
   struct thread_time *curr_threadtime = &ctt; // this pointer variable will be used for functions for ease of use
 
   // disable interrupts to avoid race-conditions
@@ -126,7 +131,7 @@ timer_sleep (int64_t ticks)
   list_insert_ordered(threadtime_list, &curr_threadtime->elem, compare_threadtimes, NULL);
 
   // block thread and re-enable interrupts
-  thread_block();
+  sema_down(&(ctt.sema_sleep));
   intr_enable();
 }
 
@@ -219,8 +224,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     {
       list_remove(front); // remove the thread_time from the list
 
-      struct thread *curr_thread = curr->thread;
-      thread_unblock(curr_thread);
+      sema_up(&(curr->sema_sleep));
     }
     else
     {
