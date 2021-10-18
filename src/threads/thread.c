@@ -37,6 +37,9 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+/* Lock used by thread_set_priority(). */
+static struct lock priority_lock;
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -90,6 +93,7 @@ thread_init (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   lock_init (&tid_lock);
+  lock_init(&priority_lock);
   list_init (&ready_list);
   list_init (&all_list);
 
@@ -215,6 +219,14 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  int unblocked_thread_priority = t->priority;
+  int curr_thread_priority = thread_get_priority();
+
+  if (!intr_context() && unblocked_thread_priority > curr_thread_priority) 
+  {
+    thread_yield();
+  }
 
   return tid;
 }
@@ -352,24 +364,15 @@ thread_set_priority (int new_priority)
 {
   ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
 
-  enum intr_level old_level = intr_disable();
-
+  lock_acquire(&priority_lock);
+  int current_priority = thread_get_priority();
   thread_current()->priority = new_priority;
 
-  /*  Checks all the threads' priorities and yields the current thread
-      if it finds a thread with a higher priority. */
-  for (struct list_elem *e = list_begin(&all_list); e != list_end(&all_list);
-       e = list_next(e))
+  if (current_priority > new_priority)
   {
-    struct thread *t = list_entry(e, struct thread, allelem);
-    if (t->priority > new_priority)
-    {
-      thread_yield();
-      break;
-    }
+    thread_yield();
   }
-
-  intr_set_level(old_level);
+  lock_release(&priority_lock);
 }
 
 /* Returns the current thread's priority. */
@@ -516,6 +519,17 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
+/*  Compares priorities and returns true if thread 1 has a lower
+    priority than thread 2. */
+bool compare_thread_priority (const struct list_elem *t_elem1, 
+                              const struct list_elem *t_elem2, void *aux UNUSED)
+{
+  struct thread *thread1 = list_entry (t_elem1, struct thread, elem);
+  struct thread *thread2 = list_entry (t_elem2, struct thread, elem);
+
+  return (thread1->priority < thread2->priority);
+}
+
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
@@ -525,9 +539,16 @@ static struct thread *
 next_thread_to_run (void) 
 {
   if (list_empty (&ready_list))
+  {
     return idle_thread;
+  }
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  {
+    struct list_elem *thread_elem = list_max(&ready_list, compare_thread_priority, NULL);
+    struct thread *t = list_entry(thread_elem, struct thread, elem);
+    list_remove(thread_elem);
+    return t;
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
