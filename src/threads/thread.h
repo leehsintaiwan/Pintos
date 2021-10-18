@@ -139,4 +139,9 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+/* Compares priorities of threads. */
+bool compare_thread_priority (const struct list_elem *, 
+                              const struct list_elem *, void *aux);
+
+
 #endif /* threads/thread.h */
