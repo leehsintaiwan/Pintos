@@ -126,6 +126,7 @@ sema_up (struct semaphore *sema)
   {
     struct list_elem *max_priority_thread_elem = list_max(&sema->waiters, compare_priority, NULL);
     struct thread *max_priority_thread = list_entry(max_priority_thread_elem, struct thread, elem);
+    list_remove(max_priority_thread_elem);
     thread_unblock (max_priority_thread);
   }
   sema->value++;
@@ -328,9 +329,13 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (!intr_context ());
   ASSERT (lock_held_by_current_thread (lock));
 
-  if (!list_empty (&cond->waiters)) 
-    sema_up (&list_entry (list_max(&cond->waiters, compare_priority, NULL),
-                          struct semaphore_elem, elem)->semaphore);
+  if (!list_empty (&cond->waiters))
+  {
+    struct list_elem *max_priority_thread_elem = list_max(&cond->waiters, compare_priority, NULL);
+    struct semaphore_elem *max_priority_thread = list_entry (max_priority_thread_elem, struct semaphore_elem, elem);
+    sema_up (&max_priority_thread->semaphore);
+    list_remove(max_priority_thread_elem);
+  }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
