@@ -12,7 +12,7 @@
 #define INTEGER_TO_FIXED_POINT (n) (n * F)
 #define FIXED_POINT_TO_INTEGER_ZERO (x) (x / F)
 
-inline int32_t fixed_point_to_integer_nearest (int32_t x)
+inline int32_t FIXED_POINT_TO_INTEGER_NEAREST (int32_t x)
 {
     return x >= 0 ? (x + F / 2) / F : (x - F / 2) / F;
 }
@@ -25,12 +25,12 @@ inline int32_t fixed_point_to_integer_nearest (int32_t x)
 #define MULTIPLY_FIXED_AND_INTEGER(x, n) (x * n)
 #define DIVIDE_FIXED_BY_INTEGER(x, n) (x / n)
 
-inline int64_t multiply_fixed_points (int32_t x, int32_t y)
+inline int64_t MULTIPLY_FIXED_POINTS (int32_t x, int32_t y)
 {
     return ((int64_t) x) * y / F;
 }
 
-inline int64_t divide_fixed_points (int32_t x, int32_t y)
+inline int64_t DIVIDE_FIXED_POINTS (int32_t x, int32_t y)
 {
     return ((int64_t) x) * F / y;
 }
