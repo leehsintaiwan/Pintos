@@ -364,15 +364,19 @@ thread_set_priority (int new_priority)
 {
   ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
 
-  lock_acquire(&priority_lock);
-  int current_priority = thread_get_priority();
-  thread_current()->priority = new_priority;
-
-  if (current_priority > new_priority)
+  /*  Checks all the threads' priorities and yields the current thread
+    if it finds a thread with a higher priority. */
+  for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+       e = list_next (e))
   {
-    thread_yield();
+    struct thread *t = list_entry (e, struct thread, allelem);
+    if (t->priority > new_priority)
+    {
+      thread_yield();
+      break;
+    }
   }
-  lock_release(&priority_lock);
+
 }
 
 /* Returns the current thread's priority. */
