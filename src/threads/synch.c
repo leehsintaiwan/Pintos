@@ -224,8 +224,12 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  //old_level = intr_disable();
   struct thread *current = thread_current();
-  list_push_back(&lock->holder->donators, &current->donator_elem);
+  if (lock->holder)
+  {
+    list_push_back(&lock->holder->donators, &current->donator_elem);
+  }
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
@@ -263,7 +267,7 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   struct thread *current = thread_current();
-  list_remove(&current->donator_elem);
+  list_head(&current->donators)->next = list_end(&current->donators);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
