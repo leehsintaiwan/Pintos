@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include "threads/fixed-point.h"
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -410,17 +411,29 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int new_nice) 
 {
-  /* Not yet implemented. */
+  intr_disable();
+  struct thread *t = thread_current();
+  t->nice = new_nice;
+
+  int recent_cpu = thread_get_recent_cpu();
+
+  t->priority = PRI_MAX - SUBTRACT_INTEGER_FROM_FIXED(DIVIDE_FIXED_BY_INTEGER(recent_cpu, 4), (new_nice * 2)); // unsure if another fixed-point operation is needed for the outermost subtraction
+
+  intr_enable();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  intr_disable();
+
+  struct thread *t = thread_current();
+  return t->nice;
+
+  intr_enable();
 }
 
 /* Returns 100 times the system load average. */
