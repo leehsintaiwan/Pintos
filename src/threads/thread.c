@@ -363,6 +363,8 @@ thread_set_priority (int new_priority)
 {
   ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
 
+  thread_current()->priority = new_priority;
+
   /*  Checks all the threads' priorities and yields the current thread
     if it finds a thread with a higher priority. */
   for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
@@ -378,11 +380,32 @@ thread_set_priority (int new_priority)
 
 }
 
+/* Returns priority of given thread */
+int get_priority_of_thread(struct thread *t)
+{
+  enum intr_level old_level = intr_disable();
+  int max_priority = t->priority;
+
+  struct list_elem *e;
+  for (e = list_begin (&t->donators); e != list_end (&t->donators);
+       e = list_next (e))
+  {
+    int priority = get_priority_of_thread(list_entry(e, struct thread, donator_elem));
+    if (priority > max_priority)
+    {
+      max_priority = priority;
+    }
+  }
+
+  intr_set_level(old_level);
+  return max_priority;
+}
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return get_priority_of_thread(thread_current());
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -504,6 +527,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 
+  list_init(&t->donators);
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -530,7 +555,7 @@ bool compare_thread_priority (const struct list_elem *t_elem1,
   struct thread *thread1 = list_entry (t_elem1, struct thread, elem);
   struct thread *thread2 = list_entry (t_elem2, struct thread, elem);
 
-  return (thread1->priority < thread2->priority);
+  return (get_priority_of_thread(thread1) < get_priority_of_thread(thread2));
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
