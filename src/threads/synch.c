@@ -107,7 +107,7 @@ static bool compare_priority(const struct list_elem *e1, const struct list_elem 
   struct thread *t1 = list_entry(e1, struct thread, elem);
   struct thread *t2 = list_entry(e2, struct thread, elem);
 
-  return t1->priority < t2->priority;
+  return get_priority_of_thread(t1) < get_priority_of_thread(t2);
 }
 
 /* Up or "V" operation on a semaphore.  Increments SEMA's value
