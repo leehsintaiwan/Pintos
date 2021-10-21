@@ -225,14 +225,17 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   enum intr_level old_level = intr_disable();
+
   struct thread *current = thread_current();
   if (lock->holder)
   {
+    thread_current()->wait_lock = lock;
     list_push_back(&lock->holder->donators, &current->donator_elem);
   }
-  intr_set_level(old_level);
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+
+  intr_set_level(old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -266,11 +269,37 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  struct thread *current = thread_current();
-  list_head(&current->donators)->next = list_end(&current->donators);
+  enum intr_level old_level = intr_disable();
 
-  lock->holder = NULL;
+  struct list *waiters = &lock->semaphore.waiters;
+
+  if (!list_empty(waiters))
+  {
+    struct list_elem *thread_elem = list_max(waiters, compare_priority, NULL);
+    struct thread *t = list_entry(thread_elem, struct thread, elem);
+    list_remove (&t->donator_elem);
+
+    struct list *donators = &lock->holder->donators;
+
+    for (struct list_elem *e = list_begin (donators); e != list_end (donators);
+       e = list_next (e))
+    {
+      struct thread *donator_thread = list_entry (e, struct thread, donator_elem);
+
+      if (donator_thread->wait_lock == lock) {
+        e = list_remove (e);
+        e = list_prev (e);
+        list_push_back (&t->donators, &donator_thread->donator_elem);
+      }
+    }
+  }
+  else
+  {
+    lock->holder = NULL;
+  }
+  
   sema_up (&lock->semaphore);
+  intr_set_level(old_level);
 }
 
 /* Returns true if the current thread holds LOCK, false
