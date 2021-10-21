@@ -318,6 +318,7 @@ struct semaphore_elem
   {
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
+    int semaphore_priority;             /* Priority. */
   };
 
 /* Initializes condition variable COND.  A condition variable
@@ -362,10 +363,22 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
+  waiter.semaphore_priority = thread_current()->priority;
   list_push_back (&cond->waiters, &waiter.elem);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
+}
+
+
+/*  Compares priorities and returns true if sema 1 has a lower
+    priority than sema 2. */
+static bool compare_sema_priority (const struct list_elem *a, const struct list_elem *b,
+						                         void *aux UNUSED)
+{
+  struct semaphore_elem *sema1 = list_entry (a, struct semaphore_elem,elem);
+  struct semaphore_elem *sema2 = list_entry (b, struct semaphore_elem,elem);
+  return sema1->semaphore_priority < sema2->semaphore_priority;
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
@@ -385,10 +398,10 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!list_empty (&cond->waiters))
   {
-    struct list_elem *max_priority_thread_elem = list_max(&cond->waiters, compare_priority, NULL);
-    struct semaphore_elem *max_priority_thread = list_entry (max_priority_thread_elem, struct semaphore_elem, elem);
-    sema_up (&max_priority_thread->semaphore);
-    list_remove(max_priority_thread_elem);
+    struct list_elem *max_priority_sema_elem = list_max(&cond->waiters, compare_sema_priority, NULL);
+    struct semaphore_elem *max_priority_sema = list_entry (max_priority_sema_elem, struct semaphore_elem, elem);
+    list_remove(max_priority_sema_elem);
+    sema_up (&max_priority_sema->semaphore);
   }
 }
 
