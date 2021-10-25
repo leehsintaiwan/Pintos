@@ -477,8 +477,7 @@ thread_set_nice (int new_nice)
 int
 thread_get_nice (void) 
 {
-  struct thread *t = thread_current();
-  return t->nice;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -501,8 +500,7 @@ thread_update_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
-  struct thread *t = thread_current();
-  return t->recent_cpu;
+  return thread_current()->recent_cpu;
 }
 
 /* Updates 100 times the current thread's recent_cpu value. */
