@@ -413,7 +413,6 @@ thread_set_priority (int new_priority)
       break;
     }
   }
-
 }
 
 /* Returns priority of given thread */
@@ -448,9 +447,7 @@ thread_get_priority (void)
 void
 thread_update_priority(struct thread *t)
 {
-  intr_disable();
   t->priority = PRI_MAX - (t->recent_cpu / (4 * MULTIPLIER)) - (t->nice * 2); // this equation may need to be modified with fixed-point operations
-  intr_enable();
 
   /*  Checks all the threads' priorities and yields the current thread
   if it finds a thread with a higher priority. */
@@ -470,10 +467,8 @@ thread_update_priority(struct thread *t)
 void
 thread_set_nice (int new_nice) 
 {
-  intr_disable();
   struct thread *t = thread_current();
   t->nice = new_nice;
-  intr_enable();
   thread_update_priority(t);
 }
 
