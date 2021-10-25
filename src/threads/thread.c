@@ -151,33 +151,37 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  t->recent_cpu++; // Running thread's recent_cpu incremented
-
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 
-  /* Executed every second */
-  if (timer_ticks() % TIMER_FREQ == 0)
+  /* Only enter if BSD scheduler is used */
+  if (thread_mlfqs)  
   {
-    thread_update_load_avg();
+    t->recent_cpu++; // Running thread's recent_cpu incremented
 
-    for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
+    /* Executed every second */
+    if (timer_ticks() % TIMER_FREQ == 0)
     {
-      struct thread *t = list_entry (e, struct thread, allelem);
-      thread_update_recent_cpu(t);
-    }
-  }  
+      thread_update_load_avg();
 
-  /* Executed every 4th clock tick */
-  if (timer_ticks() % TIME_SLICE == 0)
-  {
-    for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
+      for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+        e = list_next (e))
+      {
+        struct thread *t = list_entry (e, struct thread, allelem);
+        thread_update_recent_cpu(t);
+      }
+    }  
+
+    /* Executed every 4th clock tick */
+    if (timer_ticks() % TIME_SLICE == 0)
     {
-      struct thread *t = list_entry (e, struct thread, allelem);
-      thread_update_priority(t);
+      for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+        e = list_next (e))
+      {
+        struct thread *t = list_entry (e, struct thread, allelem);
+        thread_update_priority(t);
+      }
     }
   }
 }
