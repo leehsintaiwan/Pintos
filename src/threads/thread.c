@@ -12,6 +12,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.c"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -57,6 +58,8 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
+
+#define MULTIPLIER 100          /* Factor for recent_cpu and load_avg */
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -148,9 +151,35 @@ thread_tick (void)
   else
     kernel_ticks++;
 
+  t->recent_cpu++; // Running thread's recent_cpu incremented
+
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  /* Executed every second */
+  if (timer_ticks() % TIMER_FREQ == 0)
+  {
+    thread_update_load_avg();
+
+    for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+       e = list_next (e))
+    {
+      struct thread *t = list_entry (e, struct thread, allelem);
+      thread_update_recent_cpu(t);
+    }
+  }  
+
+  /* Executed every 4th clock tick */
+  if (timer_ticks() % TIME_SLICE == 0)
+  {
+    for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+       e = list_next (e))
+    {
+      struct thread *t = list_entry (e, struct thread, allelem);
+      thread_update_priority(t);
+    }
+  }
 }
 
 /* Prints thread statistics. */
@@ -416,8 +445,21 @@ void
 thread_update_priority(struct thread *t)
 {
   intr_disable();
-  t->priority = PRI_MAX - (t->recent_cpu / 400) - (t->nice * 2); // this equation may need to be modified with fixed-point operations
+  t->priority = PRI_MAX - (t->recent_cpu / (4 * MULTIPLIER)) - (t->nice * 2); // this equation may need to be modified with fixed-point operations
   intr_enable();
+
+  /*  Checks all the threads' priorities and yields the current thread
+  if it finds a thread with a higher priority. */
+  for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
+       e = list_next (e))
+  {
+    struct thread *u = list_entry (e, struct thread, allelem);
+    if (u->priority > t->priority)
+    {
+      thread_yield();
+      break;
+    }
+  }
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -435,10 +477,7 @@ thread_set_nice (int new_nice)
 int
 thread_get_nice (void) 
 {
-  intr_disable();
   struct thread *t = thread_current();
-  intr_enable();
-
   return t->nice;
 }
 
@@ -453,7 +492,7 @@ thread_get_load_avg (void)
 void
 thread_update_load_avg (void) 
 {
-  int ready_threads = 100; // TODO: set ready_threads to 100x the number of threads that are either ready or running at update time (excluding idle thread)
+  int ready_threads = MULTIPLIER * (threads_ready() + 1); // TODO: set ready_threads to 100x the number of threads that are either ready or running at update time (excluding idle thread)
   
   load_avg = (59 * load_avg + ready_threads) / 60;
 }
@@ -472,7 +511,7 @@ thread_update_recent_cpu (struct thread *t)
 {
   int l = 2 * load_avg; // this simplifies the formula below
 
-  t->recent_cpu = ((l * t->recent_cpu) / (l + 100)) + (100 * t->nice); // formula modified to give 100x recent_cpu
+  t->recent_cpu = ((l * t->recent_cpu) / (l + MULTIPLIER)) + (MULTIPLIER * t->nice); // formula modified to give 100x recent_cpu
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
