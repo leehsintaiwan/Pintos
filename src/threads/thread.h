@@ -145,6 +145,10 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+void thread_update_priority(struct thread *);
+void thread_update_recent_cpu (struct thread *);
+void thread_update_priority(struct thread *);
+void thread_update_load_avg (void);
 
 /* Compares priorities of threads. */
 bool compare_thread_priority (const struct list_elem *, 
