@@ -78,7 +78,7 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-int load_avg = 0; // 100x system load average; most recent load_avg value obtained from thread_get_load_avg()
+int32_t load_avg = INTEGER_TO_FIXED_POINT(0); // 100x system load average; most recent load_avg value obtained from thread_get_load_avg()
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -153,26 +153,27 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE)
-    intr_yield_on_return ();
 
   /* Only enter if BSD scheduler is used */
   if (thread_mlfqs)  
   {
-    t->recent_cpu++; // Running thread's recent_cpu incremented
+    if (t != idle_thread)
+    {
+      t->recent_cpu = ADD_FIXED_AND_INTEGER(t->recent_cpu, 1); // Running thread's recent_cpu incremented
+    }
 
     /* Executed every second */
     if (timer_ticks() % TIMER_FREQ == 0)
     {
       thread_update_load_avg();
-
+      enum intr_level old_level = intr_disable ();
       for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
         e = list_next (e))
       {
         struct thread *t = list_entry (e, struct thread, allelem);
         thread_update_recent_cpu(t);
       }
+      intr_set_level (old_level);
     }  
 
     /* Executed every 4th clock tick */
@@ -186,6 +187,10 @@ thread_tick (void)
       }
     }
   }
+
+  /* Enforce preemption. */
+  if (++thread_ticks >= TIME_SLICE)
+    intr_yield_on_return ();
 }
 
 /* Prints thread statistics. */
@@ -447,22 +452,20 @@ thread_get_priority (void)
 
 /* Updates thread priority (MLFQS) */
 void
-thread_update_priority(struct thread *t)
+thread_update_priority (struct thread *t)
 {
-  t->priority = PRI_MAX - (t->recent_cpu / (4 * MULTIPLIER)) - (t->nice * 2); // this equation may need to be modified with fixed-point operations
+  t->priority = PRI_MAX - DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4) - (t->nice * 2);
 
-  /*  Checks all the threads' priorities and yields the current thread
-  if it finds a thread with a higher priority. */
-  for (struct list_elem *e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
+  if (t->priority < PRI_MIN) 
   {
-    struct thread *u = list_entry (e, struct thread, allelem);
-    if (u->priority > t->priority)
-    {
-      thread_yield();
-      break;
-    }
+    t->priority = PRI_MIN;
   }
+  else if (t->priority > PRI_MAX)
+  {
+    t->priority = PRI_MAX;
+  }
+
+
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -472,6 +475,26 @@ thread_set_nice (int new_nice)
   struct thread *t = thread_current();
   t->nice = new_nice;
   thread_update_priority(t);
+
+  if (get_highest_priority() > t->priority) {
+    thread_yield();
+  }
+}
+
+/* Get the priority of the highest ready thread. */
+int
+get_highest_priority (void) {
+  int max_priority = PRI_MIN;
+  for (struct list_elem *e = list_begin (&ready_list); e != list_end (&ready_list);
+       e = list_next (e))
+  {
+    struct thread *u = list_entry (e, struct thread, allelem);
+    if (u->priority > max_priority)
+    {
+      max_priority = u->priority;
+    }
+  }
+  return max_priority;
 }
 
 /* Returns the current thread's nice value. */
@@ -485,32 +508,40 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  return load_avg;
+  return FIXED_POINT_TO_INTEGER_NEAREST (MULTIPLY_FIXED_AND_INTEGER (load_avg, MULTIPLIER));
 }
 
-/* Updates 100 times the system load average. */
+/* Updates the system load average. */
 void
 thread_update_load_avg (void) 
 {
-  int ready_threads = MULTIPLIER * (threads_ready() + 1); // TODO: set ready_threads to 100x the number of threads that are either ready or running at update time (excluding idle thread)
-  
-  load_avg = (59 * load_avg + ready_threads) / 60;
+  int ready_threads = (int) (threads_ready() + ((!strcmp (thread_current ()->name, "idle")) ? 0 : 1)); // TODO: set ready_threads to 100x the number of threads that are either ready or running at update time (excluding idle thread)
+  int32_t div_factor = DIVIDE_FIXED_BY_INTEGER (F, 60);
+  int32_t mult1 = MULTIPLY_FIXED_AND_INTEGER (div_factor, ready_threads);
+  int32_t mul_factor = MULTIPLY_FIXED_AND_INTEGER (F, 59);
+  int32_t div = DIVIDE_FIXED_BY_INTEGER (mul_factor, 60);
+  int64_t mult2 = MULTIPLY_FIXED_POINTS (load_avg, div);
+  int64_t new_load_avg = ADD_FIXED_POINTS (mult1, mult2);
+  load_avg = new_load_avg;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  return thread_current()->recent_cpu;
+  return FIXED_POINT_TO_INTEGER_NEAREST (MULTIPLY_FIXED_AND_INTEGER (thread_current ()->recent_cpu, MULTIPLIER));
 }
 
-/* Updates 100 times the current thread's recent_cpu value. */
+/* Updates the current thread's recent_cpu value. */
 void
 thread_update_recent_cpu (struct thread *t)
 {
-  int l = 2 * load_avg; // this simplifies the formula below
+  int64_t double_load_avg = MULTIPLY_FIXED_AND_INTEGER (load_avg, 2); // this simplifies the formula below
+  int64_t double_add_one_load_avg = ADD_FIXED_AND_INTEGER (double_load_avg, 1);
+  int64_t coefficient = DIVIDE_FIXED_POINTS (double_load_avg, double_add_one_load_avg);
 
-  t->recent_cpu = ((l * t->recent_cpu) / (l + MULTIPLIER)) + (MULTIPLIER * t->nice); // formula modified to give 100x recent_cpu
+  t->recent_cpu = ADD_FIXED_AND_INTEGER (MULTIPLY_FIXED_POINTS (coefficient, t->recent_cpu), t->nice);
+  thread_update_priority(t);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
