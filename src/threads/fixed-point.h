@@ -9,9 +9,9 @@
 #define F (1 << Q)
 
 /* Conversion macros */
-#define INTEGER_TO_FIXED_POINT (n) (n * F)
-#define FIXED_POINT_TO_INTEGER_ZERO (x) (x / F)
-#define FIXED_POINT_TO_INTEGER_NEAREST (x) ((x >= 0) ? ((x + F / 2) / F) : ((x - F / 2) / F))
+#define INTEGER_TO_FIXED_POINT(n) (n * F)
+#define FIXED_POINT_TO_INTEGER_ZERO(x) (x / F)
+#define FIXED_POINT_TO_INTEGER_NEAREST(x) ((x >= 0) ? ((x + F / 2) / F) : ((x - F / 2) / F))
 
 /* Binary operations */
 #define ADD_FIXED_POINTS(x, y) (x + y)
