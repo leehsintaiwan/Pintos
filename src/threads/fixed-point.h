@@ -20,7 +20,7 @@
 #define SUBTRACT_INTEGER_FROM_FIXED(x, n) (x - n * F)
 #define MULTIPLY_FIXED_AND_INTEGER(x, n) (x * n)
 #define DIVIDE_FIXED_BY_INTEGER(x, n) (x / n)
-#define MULTIPLY_FIXED_POINTS (x, y) (x *y / F)
-#define DIVIDE_FIXED_POINTS (x, y) (x * F / y)
+#define MULTIPLY_FIXED_POINTS (x, y) (((int64_t) x) * y / F)
+#define DIVIDE_FIXED_POINTS (x, y) (((int64_t) x) * F / y)
 
 #endif /* threads/fixed-point.h */
