@@ -260,12 +260,28 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+  if (thread_mlfqs) 
+  {
+    thread_update_priority(t);
+  }
+
   /* Add to run queue. */
   thread_unblock (t);
 
-  int curr_thread_priority = thread_get_priority();
+  int t_priority;
+  int curr_thread_priority;
+  if (thread_mlfqs) 
+  {
+    t_priority = t->priority;
+    curr_thread_priority = thread_current()->priority;
+  }
+  else
+  {
+    t_priority = get_priority_of_thread(t);
+    curr_thread_priority = thread_get_priority();
+  }
 
-  if (!intr_context() && priority > curr_thread_priority) 
+  if (!intr_context() && t_priority > curr_thread_priority && thread_current() != idle_thread) 
   {
     thread_yield();
   }
@@ -454,7 +470,7 @@ thread_get_priority (void)
 void
 thread_update_priority (struct thread *t)
 {
-  t->priority = PRI_MAX - DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4) - (t->nice * 2);
+  t->priority = PRI_MAX - FIXED_POINT_TO_INTEGER_NEAREST(DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4)) - (t->nice * 2);
 
   if (t->priority < PRI_MIN) 
   {
@@ -515,7 +531,7 @@ thread_get_load_avg (void)
 void
 thread_update_load_avg (void) 
 {
-  int ready_threads = (int) (threads_ready() + ((!strcmp (thread_current ()->name, "idle")) ? 0 : 1)); // TODO: set ready_threads to 100x the number of threads that are either ready or running at update time (excluding idle thread)
+  int ready_threads = (int) (threads_ready() + ((thread_current() == idle_thread) ? 0 : 1)); 
   int32_t div_factor = DIVIDE_FIXED_BY_INTEGER (F, 60);
   int32_t mult1 = MULTIPLY_FIXED_AND_INTEGER (div_factor, ready_threads);
   int32_t mul_factor = MULTIPLY_FIXED_AND_INTEGER (F, 59);
