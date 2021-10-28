@@ -63,6 +63,10 @@ struct lock *wait_lock;                       /* The lock causing the thread to 
 >> potentially change during the computation?
 >> Can you use a lock to avoid the race?
 
+In order to avoid race conditions in thread_set_priority(), we used the priority_lock variable. 
+We acquired the lock prior to modifying any thread priority values, iterating through the list of threads, or yielding any threads.
+Only after all threads have been iterated through do we release priority_lock.
+
 ---- RATIONALE ----
 
 >> A7: (3 marks)
@@ -116,7 +120,8 @@ There were ambiguities in the table for which thread to run next when multiple t
 We resolved this issue by choosing the already running thread if applicable, otherwise choosing the thread with the lowest niceness.
 
 Regarding recent_cpu and priority values, there weren't any ambiguities assuming that thread A was not running prior to tick 0, however, 
-if the table extended to over 100 ticks, or if thread A was running prior to tick 0, then there would be ambiguities for when to recalculate load_avg and recent_cpu of each thread.
+if the table extended to over 100 ticks, or if thread A was running prior to tick 0, then there would be ambiguities for when to recalculate 
+load_avg and recent_cpu of each thread.
 
 ---- RATIONALE ----
 
