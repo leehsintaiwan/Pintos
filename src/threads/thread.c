@@ -421,7 +421,7 @@ void
 thread_set_priority (int new_priority) 
 {
   ASSERT(new_priority >= PRI_MIN && new_priority <= PRI_MAX);
-
+  lock_acquire (&priority_lock);
   thread_current()->priority = new_priority;
 
   /*  Checks all the threads' priorities and yields the current thread
@@ -436,6 +436,8 @@ thread_set_priority (int new_priority)
       break;
     }
   }
+  lock_release (&priority_lock);
+
 }
 
 /* Returns priority of given thread */
@@ -470,7 +472,8 @@ thread_get_priority (void)
 void
 thread_update_priority (struct thread *t)
 {
-  t->priority = PRI_MAX - FIXED_POINT_TO_INTEGER_NEAREST(DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4)) - (t->nice * 2);
+  t->priority = PRI_MAX - FIXED_POINT_TO_INTEGER_NEAREST(DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4)) - 
+                  MULTIPLY_FIXED_AND_INTEGER(t->nice, 2);
 
   if (t->priority < PRI_MIN) 
   {
@@ -532,11 +535,8 @@ void
 thread_update_load_avg (void) 
 {
   int ready_threads = (int) (threads_ready() + ((thread_current() == idle_thread) ? 0 : 1)); 
-  int32_t div_factor = DIVIDE_FIXED_BY_INTEGER (F, 60);
-  int32_t mult1 = MULTIPLY_FIXED_AND_INTEGER (div_factor, ready_threads);
-  int32_t mul_factor = MULTIPLY_FIXED_AND_INTEGER (F, 59);
-  int32_t div = DIVIDE_FIXED_BY_INTEGER (mul_factor, 60);
-  int64_t mult2 = MULTIPLY_FIXED_POINTS (load_avg, div);
+  int32_t mult1 = MULTIPLY_FIXED_AND_INTEGER (DIVIDE_FIXED_BY_INTEGER (F, 60), ready_threads);
+  int64_t mult2 = MULTIPLY_FIXED_POINTS (load_avg, DIVIDE_FIXED_BY_INTEGER (MULTIPLY_FIXED_AND_INTEGER (F, 59), 60));
   int64_t new_load_avg = ADD_FIXED_POINTS (mult1, mult2);
   load_avg = new_load_avg;
 }
