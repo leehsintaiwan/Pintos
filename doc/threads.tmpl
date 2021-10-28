@@ -32,9 +32,9 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> global or static variable, `typedef', or enumeration.  
 >> Identify the purpose of each in roughly 25 words.
 
-struct list donators;                         /* List of donator threads */
-struct list_elem donator_elem;                /* List element for donators list */
-struct lock *wait_lock;                       /* The lock causing the thread to wait */
+struct list donators;                 /* List of donator threads */
+struct list_elem donator_elem;        /* List element for donators list */
+struct lock *wait_lock;               /* The lock causing the thread to wait */
 
 >> A2: (4 marks) 
 >> Draw a diagram that illustrates a nested donation in your structure and 
@@ -46,14 +46,28 @@ struct lock *wait_lock;                       /* The lock causing the thread to 
 >> How do you ensure that the highest priority waiting thread wakes up first for
 >> a (i) lock, (ii) semaphore, or (iii) condition variable?
 
+For all three synchronization primitives, we store the list of waiters in the relevant semaphore.
+We wrote a list less function to compare the thread priorities,
+and used list_max to find and wake up the highest priorty waiting thread.
+
 >> A4: (3 marks)
 >> Describe the sequence of events when a call to lock_acquire() causes a 
 >> priority donation. 
 >> How is nested donation handled?
 
+When lock_acquire() is called and the lock is already acquired by another thread,
+we add the current thread to the list of donators to the lock holder.
+To handle nested donation, everytime thread_get_priority is called, it recursively
+goes through each list of donators and returns the highest priority donated to each thread.
+
 >> A5: (3 marks)
 >> Describe the sequence of events when lock_release() is called on a lock that 
 >> a higher-priority thread is waiting for.
+
+First we find the highest priority thread that is waiting for this lock.
+Then we remove the highest priority thread from the list of threads waiting for this lock.
+Next we go through the list of donators assigned to the original lock holder,
+and donate each of the threads who is waiting for this lock to the new highest priority thread.
 
 ---- SYNCHRONIZATION ----
 
@@ -72,6 +86,12 @@ Only after all threads have been iterated through do we release priority_lock.
 >> A7: (3 marks)
 >> Why did you choose this design?  
 >> In what ways is it superior to another design you considered?
+
+We chose to recursively get the highest priority from the list of donator threads
+in thread_get_priority() and only set the current thread's priority in 
+thread_set_priority() rather than vice versa. This way when releasing a lock, 
+we don't need to recursively update all the nested priority donations while 
+keeping track of the initial priorities of each thread.
 
               ADVANCED SCHEDULER
               ==================
