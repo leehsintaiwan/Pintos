@@ -89,7 +89,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int nice;                           /* Nice value (mlfqs) */
-    int recent_cpu;                     /* 100x recent_cpu value (mlfqs) */
+    int recent_cpu;                     /* recent_cpu value (mlfqs) */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */

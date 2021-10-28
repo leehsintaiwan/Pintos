@@ -78,7 +78,7 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-int32_t load_avg = INTEGER_TO_FIXED_POINT(0); // 100x system load average; most recent load_avg value obtained from thread_get_load_avg()
+int32_t load_avg = INTEGER_TO_FIXED_POINT(0); // system load average; most recent load_avg value obtained from thread_get_load_avg()
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -472,8 +472,7 @@ thread_get_priority (void)
 void
 thread_update_priority (struct thread *t)
 {
-  t->priority = PRI_MAX - FIXED_POINT_TO_INTEGER_NEAREST(DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4)) - 
-                  MULTIPLY_FIXED_AND_INTEGER(t->nice, 2);
+  t->priority = PRI_MAX - FIXED_POINT_TO_INTEGER_NEAREST(DIVIDE_FIXED_BY_INTEGER (t->recent_cpu, 4)) - (t->nice * 2);
 
   if (t->priority < PRI_MIN) 
   {
