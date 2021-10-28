@@ -32,16 +32,9 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> global or static variable, `typedef', or enumeration.  
 >> Identify the purpose of each in roughly 25 words.
 
-int nice;                                     /* Nice value (mlfqs) */
-int recent_cpu;                               /* recent_cpu value (mlfqs) */
-
 struct list donators;                         /* List of donator threads */
 struct list_elem donator_elem;                /* List element for donators list */
 struct lock *wait_lock;                       /* The lock causing the thread to wait */
-
-#define MULTIPLIER 100                        /* Factor for recent_cpu and load_avg */
-int32_t load_avg = INTEGER_TO_FIXED_POINT(0); /* system load average; most recent load_avg value obtained from thread_get_load_avg() */
-
 
 >> A2: (4 marks) 
 >> Draw a diagram that illustrates a nested donation in your structure and 
@@ -86,6 +79,12 @@ int32_t load_avg = INTEGER_TO_FIXED_POINT(0); /* system load average; most recen
 >> global or static variable, `typedef', or enumeration. 
 >> Identify the purpose of each in roughly 25 words.
 
+int nice;                                     /* Nice value of a thread */
+int recent_cpu;                               /* recent_cpu value of a thread */
+
+#define MULTIPLIER 100                        /* Factor for calculating recent_cpu and load_avg */
+int32_t load_avg = INTEGER_TO_FIXED_POINT(0); /* system load average; most recent load_avg value obtained from thread_get_load_avg() */
+
 ---- ALGORITHMS ----
 
 >> B2: (3 marks)
@@ -97,21 +96,27 @@ int32_t load_avg = INTEGER_TO_FIXED_POINT(0); /* system load average; most recen
 timer  recent_cpu    priority   thread
 ticks   A   B   C   A   B   C   to run
 -----  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
+ 0      0   0   0  63  61  59     A
+ 4      4   0   0  62  61  59     A  
+ 8      8   0   0  61  61  59     A  
+12      12  0   0  60  61  59     B        
+16      12  4   0  60  60  59     B  
+20      12  8   0  60  59  59     A  
+24      16  8   0  59  59  59     A
+28      20  8   0  58  59  59     B
+32      20  12  0  58  58  59     C
+36      20  12  4  58  58  58     C
 
 >> B3: (2 marks) 
 >> Did any ambiguities in the scheduler specification make values in the table 
 >> uncertain? 
 >> If so, what rule did you use to resolve them?
+
+There were ambiguities in the table for which thread to run next when multiple threads shared the highest priority. 
+We resolved this issue by choosing the already running thread if applicable, otherwise choosing the thread with the lowest niceness.
+
+Regarding recent_cpu and priority values, there weren't any ambiguities assuming that thread A was not running prior to tick 0, however, 
+if the table extended to over 100 ticks, or if thread A was running prior to tick 0, then there would be ambiguities for when to recalculate load_avg and recent_cpu of each thread.
 
 ---- RATIONALE ----
 
