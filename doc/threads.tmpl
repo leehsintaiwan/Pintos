@@ -128,3 +128,6 @@ load_avg and recent_cpu of each thread.
 >> B4: (3 marks)
 >> Briefly critique your design, pointing out advantages and disadvantages in 
 >> your design choices.
+
+We used one list instead of 64 queues because it takes up less space on the stack. However, it is slower to get threads with one list.
+We could have sorted the list by priority each time priorities are changed so we do not need to use a for loop every time to get the thread with highest priority.
