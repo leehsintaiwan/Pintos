@@ -15,8 +15,28 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
+  uint32_t systemCallNo = *(uint32_t*) intr_frame->esp;
+  printf ("system call number: %"PRIU32"\n", systemCallNo);
   thread_exit ();
+}
+ // Terminates Pintos
+void halt (void) {
+
+}
+
+// Terminates the current user program
+void exit (int status) {
+  printf ("%s: exit(%d)\n", status);
+}
+
+// Run executable
+pid_t exec (const char *file) {
+  return -1;
+}
+
+// Wait for child process
+int wait (pid_t pid) {
+  return -1;
 }
 
 // Creates new file with size initial_size
@@ -52,7 +72,7 @@ int read (int fd, const void *buffer, unsigned size)
 // Writes size bytes from buffer into file fd
 int write (int fd, const void *buffer, unsigned size)
 {
-
+  return 0;
 }
 
 // Changes next byte to be read or written in fd to position
