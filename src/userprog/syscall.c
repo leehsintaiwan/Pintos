@@ -26,7 +26,9 @@ void halt (void) {
 
 // Terminates the current user program
 void exit (int status) {
-  printf ("%s: exit(%d)\n", status);
+  struct thread *current = thread_current();
+  printf ("%s: exit(%d)\n", current->name, status);
+  thread_exit();
 }
 
 // Run executable
