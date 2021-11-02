@@ -6,6 +6,22 @@
 
 static void syscall_handler (struct intr_frame *);
 
+/* System calls. */
+static void halt (void);
+static void exit (int status);
+static pid_t exec (const char *file);
+static int wait (pid_t pid);
+static bool create (const char *file, unsigned initial_size);
+static bool remove (const char *file);
+static int open (const char *file);
+static int filesize (int fd);
+static int read (int fd, const void *buffer, unsigned size);
+static int write (int fd, const void *buffer, unsigned size);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
+static void close (int fd);
+
+
 void
 syscall_init (void) 
 {
@@ -20,73 +36,83 @@ syscall_handler (struct intr_frame *f UNUSED)
   thread_exit ();
 }
  // Terminates Pintos
-void halt (void) {
+static void halt (void) 
+{
 
 }
 
 // Terminates the current user program
-void exit (int status) {
+static void exit (int status) 
+{
   struct thread *current = thread_current();
   printf ("%s: exit(%d)\n", current->name, status);
   thread_exit();
 }
 
 // Run executable
-pid_t exec (const char *file) {
+static pid_t exec (const char *file) 
+{
   return -1;
 }
 
 // Wait for child process
-int wait (pid_t pid) {
+static int wait (pid_t pid) 
+{
   return -1;
 }
 
 // Creates new file with size initial_size
-bool create (const char *file, unsigned initial_size) 
+static bool create (const char *file, unsigned initial_size) 
 {
   return false;
 }
 
 // Removes file
-bool remove (const char *file)
+static bool remove (const char *file)
 {
   return false;
 }
 
 // Opens file, returns -1 if file could not be opened, otherwise returns fd
-int open (const char *file)
+static int open (const char *file)
 {
   return 0;
 }
 
 // Returns filsize of file
-int filesize (int fd)
+static int filesize (int fd)
 {
   return 0;
 }
 
 // Reads size bytes from file fd  into buffer
-int read (int fd, const void *buffer, unsigned size)
+static int read (int fd, const void *buffer, unsigned size)
 {
   return 0;
 }
 
 // Writes size bytes from buffer into file fd
-int write (int fd, const void *buffer, unsigned size)
+static int write (int fd, const void *buffer, unsigned size)
 {
   return 0;
 }
 
 // Changes next byte to be read or written in fd to position
-void seek (int fd, unsigned position)
+static void seek (int fd, unsigned position)
 {}
 
 // Returns position of next byte to be written or read in fd
-unsigned tell (int fd)
+static unsigned tell (int fd)
 {
   return 0;
 }
 
 // Closes fd
-void close (int fd)
+static void close (int fd)
 {}
+
+
+static bool is_valid_address (const void *addr)
+{
+ return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
+}
