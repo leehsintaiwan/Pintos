@@ -23,7 +23,6 @@ static void seek (int fd, unsigned position);
 static unsigned tell (int fd);
 static void close (int fd);
 
-
 void
 syscall_init (void) 
 {
@@ -37,6 +36,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call number: %"PRIU32"\n", systemCallNo);
   thread_exit ();
 }
+
  // Terminates Pintos
 static void halt (void) 
 {
@@ -116,7 +116,6 @@ static unsigned tell (int fd)
 // Closes fd
 static void close (int fd)
 {}
-
 
 static bool is_valid_address (const void *addr)
 {
