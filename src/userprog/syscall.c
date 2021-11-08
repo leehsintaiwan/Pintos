@@ -96,10 +96,14 @@ static int read (int fd, const void *buffer, unsigned size)
 // Writes size bytes from buffer into file fd
 static int write (int fd, const void *buffer, unsigned size)
 {
+  int fileSize = filesize(fd);
+  unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
+
   if (fd == STDOUT_FILENO) {
-    putbuf(buffer, size);
-    return size;
+    putbuf(buffer, sizeToWrite);
+    return sizeToWrite;
   }
+
   return 0;
 }
 

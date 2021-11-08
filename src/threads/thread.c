@@ -482,8 +482,6 @@ thread_update_priority (struct thread *t)
   {
     t->priority = PRI_MAX;
   }
-
-
 }
 
 /* Sets the current thread's nice value to NICE. */
