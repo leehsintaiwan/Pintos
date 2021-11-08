@@ -47,6 +47,7 @@ static void halt (void)
 static void exit (int status) 
 {
   struct thread *current = thread_current();
+  current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
   thread_exit();
 }
@@ -60,7 +61,7 @@ static pid_t exec (const char *file)
 // Wait for child process
 static int wait (pid_t pid) 
 {
-  return -1;
+  return process_wait(pid);
 }
 
 // Creates new file with size initial_size
