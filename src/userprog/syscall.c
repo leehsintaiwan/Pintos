@@ -81,7 +81,7 @@ static int open (const char *file)
   return 0;
 }
 
-// Returns filsize of file
+// Returns filesize of file
 static int filesize (int fd)
 {
   return 0;
