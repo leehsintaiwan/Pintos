@@ -47,10 +47,10 @@ process_execute (const char *file_name)
   return tid;
 }
 
-void init_process(struct process *parent, tid_t tid)
+void init_process(struct process *parent, pid_t pid)
 {
   struct process *child = (struct process *) malloc(sizeof(struct process));
-  child->tid = tid;
+  child->pid = pid;
   child->exit_status = 0;
   list_init(&child->child_process_list);
   sema_init(&child->wait_child, 0);
@@ -90,18 +90,17 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
-struct process *get_child_process(struct list *child_list, tid_t child_tid)
+struct process *get_child_process(struct list *child_list, pid_t child_pid)
 {
   for (struct list_elem *e = list_begin (&child_list); e != list_end (&child_list);
         e = list_next (e))
   {
-    if (e->tid == child_tid) {
+    if (e->pid == child_pid) {
       return list_entry(e, struct process, child_process_elem);
     }
   }
   
-  struct process *null_process;
-  return null_process;
+  return NULL;
 }
 
 void free_process(struct process *process)
@@ -124,10 +123,10 @@ process_wait (tid_t child_tid UNUSED)
 {
   struct process *parent = thread_current()->process;
   struct process *child = get_child_process(parent->child_process_list, child_tid);
-  if (!child || child->exit_status == -1) {
+  if (!child) {
     return -1;
   }
-  sema_down(child->wait_child);
+  sema_down(&child->wait_child);
   int status = child->exit_status;
   free_process(child);
   return status;
@@ -168,9 +167,8 @@ process_exit (void)
     }
 
   struct process *process = thread_current()->process;
-  sema_up(process->wait_child);
   notify_child_process(process->child_process_list);
-
+  sema_up(&process->wait_child);
   if (process->parent_died)
   {
     free_process(process);

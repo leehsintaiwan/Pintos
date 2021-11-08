@@ -9,7 +9,7 @@ void process_exit (void);
 void process_activate (void);
 
 struct process {
-  tid_t tid;
+  pid_t pid;
   int exit_status;
   struct list child_process_list;
   struct list_elem child_process_elem;
