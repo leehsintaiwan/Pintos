@@ -18,6 +18,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+static struct list process_list;
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -45,6 +47,16 @@ process_execute (const char *file_name)
   return tid;
 }
 
+void init_process(struct process *parent, tid_t tid)
+{
+  struct process *child = (struct process *) malloc(sizeof(struct process));
+  child->tid = tid;
+  child->exit_status = 0;
+  list_init(&child->child_process_list);
+  sema_init(&child->wait_child, 0);
+  child->parent_died = false;
+}
+
 /* A thread function that loads a user process and starts it
    running. */
 static void
@@ -53,6 +65,8 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+
+  init_process();
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -76,6 +90,26 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+struct process *get_child_process(struct list *child_list, tid_t child_tid)
+{
+  for (struct list_elem *e = list_begin (&child_list); e != list_end (&child_list);
+        e = list_next (e))
+  {
+    if (e->tid == child_tid) {
+      return list_entry(e, struct process, child_process_elem);
+    }
+  }
+  
+  struct process *null_process;
+  return null_process;
+}
+
+void free_process(struct process *process)
+{
+  list_remove(process->child_process_elem);
+  free(process);
+}
+
 /* Waits for thread TID to die and returns its exit status. 
  * If it was terminated by the kernel (i.e. killed due to an exception), 
  * returns -1.  
@@ -88,11 +122,25 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (1)
-  {
-
+  struct process *parent = thread_current()->process;
+  struct process *child = get_child_process(parent->child_process_list, child_tid);
+  if (!child || child->exit_status == -1) {
+    return -1;
   }
-  return -1;
+  sema_down(child->wait_child);
+  int status = child->exit_status;
+  free_process(child);
+  return status;
+}
+
+void notify_child_process(struct list *child_list)
+{
+  for (struct list_elem *e = list_begin (&child_list); e != list_end (&child_list);
+        e = list_next (e))
+  {
+    struct process *child = list_entry(e, struct process, child_process_elem);
+    child->parent_died = true;
+  }
 }
 
 /* Free the current process's resources. */
@@ -118,6 +166,15 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  struct process *process = thread_current()->process;
+  sema_up(process->wait_child);
+  notify_child_process(process->child_process_list);
+
+  if (process->parent_died)
+  {
+    free_process(process);
+  }
 }
 
 /* Sets up the CPU for running user code in the current
