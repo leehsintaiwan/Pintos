@@ -99,6 +99,9 @@ struct thread
     struct list_elem donator_elem;      /* List element for donators list */
     struct lock *wait_lock;             /* The lock causing the thread to wait */
 
+    /* Owned by process.c */
+    struct process *process;            /* Stores process information */
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

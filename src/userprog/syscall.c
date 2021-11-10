@@ -47,6 +47,7 @@ static void halt (void)
 static void exit (int status) 
 {
   struct thread *current = thread_current();
+  current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
   thread_exit();
 }
@@ -60,7 +61,7 @@ static pid_t exec (const char *file)
 // Wait for child process
 static int wait (pid_t pid) 
 {
-  return -1;
+  return process_wait(pid);
 }
 
 // Creates new file with size initial_size
@@ -81,7 +82,7 @@ static int open (const char *file)
   return 0;
 }
 
-// Returns filsize of file
+// Returns filesize of file
 static int filesize (int fd)
 {
   return 0;
@@ -96,10 +97,14 @@ static int read (int fd, const void *buffer, unsigned size)
 // Writes size bytes from buffer into file fd
 static int write (int fd, const void *buffer, unsigned size)
 {
+  int fileSize = filesize(fd);
+  unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
+
   if (fd == STDOUT_FILENO) {
-    putbuf(buffer, size);
-    return size;
+    putbuf(buffer, sizeToWrite);
+    return sizeToWrite;
   }
+
   return 0;
 }
 
