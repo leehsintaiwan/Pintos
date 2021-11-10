@@ -19,13 +19,15 @@
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);
+static bool add_arguments (void **esp, const char *file_name, char *args);
+
 
 struct command_line_struct
 {
   char *program_name;
   char *program_args;
-}
+};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -44,13 +46,15 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  struct command_line_struct command_line;
+  // struct command_line_struct command_line;
 
-  command_line.program_name = strtok_r(fn_copy, " ", &command_line.program_args);
+  // command_line.program_name = strtok_r(fn_copy, " ", &command_line.program_args);
+  char *null_pointer;
+  char *prog_name = strtok_r(fn_copy, " ", &null_pointer);
 
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (command_line.program_name, PRI_DEFAULT, start_process, &command_line);
+  tid = thread_create (prog_name, PRI_DEFAULT, start_process, &fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -59,9 +63,12 @@ process_execute (const char *file_name)
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *command_line_)
+start_process (void *command_line)
 {
-  struct command_line_struct *command_line = command_line_;
+
+  char *null_pointer;
+  char *prog_name = strtok_r((char *) command_line, " ", &null_pointer);
+
   struct intr_frame if_;
   bool success;
 
@@ -70,10 +77,10 @@ start_process (void *command_line_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (prog_name, command_line, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
+  palloc_free_page (prog_name);
   if (!success) 
     thread_exit ();
 
@@ -221,7 +228,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *file_name, char *args, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -323,6 +330,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  /* Add arguments to stack. */
+  if (!add_arguments (esp, file_name, args))
+    goto done;
+
   success = true;
 
  done:
@@ -330,10 +341,76 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
-
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
+
+
+/* Push arguments onto memory stack. */
+static bool
+add_arguments (void **esp, const char *file_name, char *args)
+{
+  *esp -= ((uint32_t) *esp % 4);
+
+
+  char *arg_addresses[MAX_ARGS_AMOUNT];
+
+  int curr_memory = 0;
+  int argc = 0;
+
+  /* Push arguments onto stack. */
+
+  char *save_ptr;
+	for (char *token = strtok_r (args, " ", &save_ptr); token != NULL;
+      token = strtok_r (NULL, " ", &save_ptr))
+	{
+		int token_memory = sizeof (char) * sizeof (token);
+
+    if (curr_memory + token_memory > MAX_ARGS_SIZE || argc + 1 > MAX_ARGS_AMOUNT)
+      return false;
+
+    *esp -= token_memory;
+    arg_addresses[argc] = *esp;
+    argc++;
+    memcpy (*esp, token, token_memory);
+    curr_memory += token_memory;
+    // curr_memory += ((token_memory + 3) & ~0x3); // Word align each argument
+	}
+
+  // /* Push word-align onto stack. */
+  // uint8_t word_align = 0;
+  // *esp -= sizeof(uint8_t);
+  // memset (*esp, word_align, sizeof(uint8_t));
+
+  *esp = (*esp - (uint32_t) *esp % 4) - sizeof (char *) * (argc + 1);
+  
+  /* Push addresses to stack. */
+  for (int i = 0; i < argc + 1; i++)
+	{
+		if (i == argc)
+		{
+			memset (*esp + i * sizeof (char *), 0, sizeof (char *));
+		} else {
+		  memcpy (*esp + i * sizeof (char *), &arg_addresses[i], sizeof (char *));
+    }
+	}
+
+  /* Push address of argv[0]. */
+  char **argv = *esp;
+	*esp -= sizeof (char **);
+	memcpy (*esp, &argv, sizeof (char **));
+
+  /* Push argc onto stack. */
+	*esp -= sizeof (int);
+	memcpy (*esp, &argc, sizeof (int));
+
+	/* Push return address of 0 onto stack. */
+	*esp -= sizeof (void (*) (void));
+	memset (*esp, 0, sizeof (void (*) (void)));
+
+  return true;
+}
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -460,7 +537,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
