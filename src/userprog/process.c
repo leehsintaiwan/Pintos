@@ -22,43 +22,33 @@ static struct list process_list;
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);
-static bool add_arguments (void **esp, const char *file_name, char *args);
+static bool push_arguments (void **esp, const char *file_name, char *args);
 
-
-struct command_line_struct
-{
-  char *program_name;
-  char *program_args;
-};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t
-process_execute (const char *file_name) 
+process_execute (const char *cmd_line) 
 {
-  char *fn_copy;
+  char *cl_copy;
   tid_t tid;
 
-  /* Make a copy of FILE_NAME.
+  /* Make a copy of CMD_LINE.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  cl_copy = palloc_get_page (0);
+  if (cl_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  strlcpy (cl_copy, cmd_line, PGSIZE);
 
-  // struct command_line_struct command_line;
-
-  // command_line.program_name = strtok_r(fn_copy, " ", &command_line.program_args);
   char *null_pointer;
-  char *prog_name = strtok_r(fn_copy, " ", &null_pointer);
-
+  char *prog_name = strtok_r(cl_copy, " ", &null_pointer);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (prog_name, PRI_DEFAULT, start_process, &fn_copy);
+  tid = thread_create (prog_name, PRI_DEFAULT, start_process, &cl_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (cl_copy); 
   return tid;
 }
 
@@ -386,7 +376,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   *eip = (void (*) (void)) ehdr.e_entry;
 
   /* Add arguments to stack. */
-  if (!add_arguments (esp, file_name, args))
+  if (!push_arguments (esp, file_name, args))
     goto done;
 
   success = true;
@@ -404,10 +394,8 @@ static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Push arguments onto memory stack. */
 static bool
-add_arguments (void **esp, const char *file_name, char *args)
+push_arguments (void **esp, const char *file_name, char *args)
 {
-  *esp -= ((uint32_t) *esp % 4);
-
 
   char *arg_addresses[MAX_ARGS_AMOUNT];
 
@@ -420,23 +408,19 @@ add_arguments (void **esp, const char *file_name, char *args)
 	for (char *token = strtok_r (args, " ", &save_ptr); token != NULL;
       token = strtok_r (NULL, " ", &save_ptr))
 	{
-		int token_memory = sizeof (char) * sizeof (token);
+		int token_memory = sizeof (char) * (strlen (token) + 1);
 
-    if (curr_memory + token_memory > MAX_ARGS_SIZE || argc + 1 > MAX_ARGS_AMOUNT)
+    if (curr_memory + token_memory > PGSIZE - MAX_REMAINING_SIZE || argc + 1 > MAX_ARGS_AMOUNT)
+    {
       return false;
-
+    }
     *esp -= token_memory;
     arg_addresses[argc] = *esp;
     argc++;
     memcpy (*esp, token, token_memory);
     curr_memory += token_memory;
-    // curr_memory += ((token_memory + 3) & ~0x3); // Word align each argument
 	}
 
-  // /* Push word-align onto stack. */
-  // uint8_t word_align = 0;
-  // *esp -= sizeof(uint8_t);
-  // memset (*esp, word_align, sizeof(uint8_t));
 
   *esp = (*esp - (uint32_t) *esp % 4) - sizeof (char *) * (argc + 1);
   
@@ -457,7 +441,7 @@ add_arguments (void **esp, const char *file_name, char *args)
 	memcpy (*esp, &argv, sizeof (char **));
 
   /* Push argc onto stack. */
-	*esp -= sizeof (int);
+	*esp -= 4; // 4 to maintain word alignment
 	memcpy (*esp, &argc, sizeof (int));
 
 	/* Push return address of 0 onto stack. */
