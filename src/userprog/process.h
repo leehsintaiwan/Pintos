@@ -24,6 +24,6 @@ struct process {
   struct list_elem child_process_elem;
   struct semaphore wait_child;
   bool parent_died;
-}
+};
 
 #endif /* userprog/process.h */
