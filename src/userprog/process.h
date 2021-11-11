@@ -3,16 +3,16 @@
 
 #include "threads/thread.h"
 
-/* Max size for command-line arguments 
+/* Max size for rest of memory struct 
    that the pintos utility can pass to the kernel. */
-#define MAX_ARGS_SIZE 128
+#define MAX_REMAINING_SIZE 148
 
 /* Max number of arguments passed. */
-#define MAX_ARGS_AMOUNT 15
+#define MAX_ARGS_AMOUNT 32
 
 typedef int pid_t;
 
-tid_t process_execute (const char *file_name);
+tid_t process_execute (const char *cmd_line);
 int process_wait (tid_t);
 void process_exit (void);
 void process_activate (void);
