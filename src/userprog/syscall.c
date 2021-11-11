@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include <inttypes.h>
 #include <stdint.h>
+#include "process.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -30,10 +31,10 @@ syscall_init (void)
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f) 
 {
-  uint32_t systemCallNo = *(uint32_t*) intr_frame->esp;
-  printf ("system call number: %"PRIU32"\n", systemCallNo);
+  uint32_t systemCallNo = *(uint32_t*) f->esp;
+  //printf ("system call number: %"PRIU32"\n", systemCallNo);
   thread_exit ();
 }
 

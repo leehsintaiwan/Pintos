@@ -15,19 +15,24 @@
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/palloc.h"
+#include "threads/malloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);
 static bool push_arguments (void **esp, const char *file_name, char *args);
-
+static void init_process(struct process *parent);
+static struct process *get_child_process(struct list *child_list, pid_t child_pid);
+static void notify_child_process(struct list *child_list);
+static void free_process(struct process *process);
 
 struct process_info
 {
   char *command_line;
   struct process *parent;
-}
+};
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -47,7 +52,7 @@ process_execute (const char *cmd_line)
   strlcpy (cl_copy, cmd_line, PGSIZE);
 
   struct process_info process_info;
-  process_info.command_line = fn_copy;
+  process_info.command_line = cl_copy;
   process_info.parent = thread_current()->process;
 
   char *null_pointer;
@@ -60,7 +65,7 @@ process_execute (const char *cmd_line)
   return tid;
 }
 
-void init_process(struct process *parent)
+static void init_process(struct process *parent)
 {
   struct process *child = (struct process *) malloc(sizeof(struct process));
   child->pid = thread_current()->tid;;
@@ -68,16 +73,17 @@ void init_process(struct process *parent)
   list_init(&child->child_process_list);
   sema_init(&child->wait_child, 0);
   child->parent_died = false;
-  list_push_back(&parent->child_process_list, &p->child_proc_elem);
+  list_push_back(&parent->child_process_list, &child->child_process_elem);
   thread_current()->process = child;
 }
 
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (struct process *process_info)
+start_process (void *info)
 {
 
+  struct process_info *process_info = (struct process_info *) info;
   char *command_line = process_info->command_line;
   char *null_pointer;
   char *prog_name = strtok_r((char *) command_line, " ", &null_pointer);
@@ -109,22 +115,23 @@ start_process (struct process *process_info)
   NOT_REACHED ();
 }
 
-struct process *get_child_process(struct list *child_list, pid_t child_pid)
+static struct process *get_child_process(struct list *child_list, pid_t child_pid)
 {
-  for (struct list_elem *e = list_begin (&child_list); e != list_end (&child_list);
+  for (struct list_elem *e = list_begin (child_list); e != list_end (child_list);
         e = list_next (e))
   {
-    if (e->pid == child_pid) {
-      return list_entry(e, struct process, child_process_elem);
+    struct process *child = list_entry(e, struct process, child_process_elem);
+    if (child->pid == child_pid) {
+      return child;
     }
   }
   
   return NULL;
 }
 
-void free_process(struct process *process)
+static void free_process(struct process *process)
 {
-  list_remove(process->child_process_elem);
+  list_remove(&process->child_process_elem);
   free(process);
 }
 
@@ -141,7 +148,7 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
   struct process *parent = thread_current()->process;
-  struct process *child = get_child_process(parent->child_process_list, child_tid);
+  struct process *child = get_child_process(&parent->child_process_list, child_tid);
   if (!child) {
     return -1;
   }
@@ -151,9 +158,9 @@ process_wait (tid_t child_tid UNUSED)
   return status;
 }
 
-void notify_child_process(struct list *child_list)
+static void notify_child_process(struct list *child_list)
 {
-  for (struct list_elem *e = list_begin (&child_list); e != list_end (&child_list);
+  for (struct list_elem *e = list_begin (child_list); e != list_end (child_list);
         e = list_next (e))
   {
     struct process *child = list_entry(e, struct process, child_process_elem);
@@ -186,7 +193,7 @@ process_exit (void)
     }
 
   struct process *process = thread_current()->process;
-  notify_child_process(process->child_process_list);
+  notify_child_process(&process->child_process_list);
   sema_up(&process->wait_child);
   if (process->parent_died)
   {

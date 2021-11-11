@@ -2,6 +2,7 @@
 #define USERPROG_PROCESS_H
 
 #include "threads/thread.h"
+#include "threads/synch.h"
 
 /* Max size for rest of memory struct 
    that the pintos utility can pass to the kernel. */
@@ -22,7 +23,7 @@ struct process {
   int exit_status;
   struct list child_process_list;
   struct list_elem child_process_elem;
-  struct semaphore wait_child;
+  struct semaphore *wait_child;
   bool parent_died;
 };
 
