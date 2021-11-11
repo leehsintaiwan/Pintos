@@ -68,7 +68,7 @@ void init_process(struct process *parent)
   list_init(&child->child_process_list);
   sema_init(&child->wait_child, 0);
   child->parent_died = false;
-  list_push_front(&parent->child_process_list, &p->child_proc_elem);
+  list_push_back(&parent->child_process_list, &p->child_proc_elem);
   thread_current()->process = child;
 }
 
