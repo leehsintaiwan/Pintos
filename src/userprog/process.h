@@ -10,6 +10,7 @@
 /* Max number of arguments passed. */
 #define MAX_ARGS_AMOUNT 15
 
+typedef int pid_t;
 
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);

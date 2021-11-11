@@ -18,18 +18,16 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
-static struct list process_list;
-
 static thread_func start_process NO_RETURN;
 static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);
 static bool add_arguments (void **esp, const char *file_name, char *args);
 
 
-struct command_line_struct
+struct process_info
 {
-  char *program_name;
-  char *program_args;
-};
+  char *command_line;
+  struct process *parent;
+}
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -48,43 +46,44 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  // struct command_line_struct command_line;
+  struct process_info process_info;
+  process_info.command_line = fn_copy;
+  process_info.parent = thread_current()->process;
 
-  // command_line.program_name = strtok_r(fn_copy, " ", &command_line.program_args);
   char *null_pointer;
   char *prog_name = strtok_r(fn_copy, " ", &null_pointer);
 
-
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (prog_name, PRI_DEFAULT, start_process, &fn_copy);
+  tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
 
-void init_process(struct process *parent, pid_t pid)
+void init_process(struct process *parent)
 {
   struct process *child = (struct process *) malloc(sizeof(struct process));
-  child->pid = pid;
-  child->exit_status = 0;
+  child->pid = thread_current()->tid;;
+  child->exit_status = -1;
   list_init(&child->child_process_list);
   sema_init(&child->wait_child, 0);
   child->parent_died = false;
+  list_push_front(&parent->child_process_list, &p->child_proc_elem);
+  thread_current()->process = child;
 }
 
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *command_line)
+start_process (struct process *process_info)
 {
 
+  char *command_line = process_info->command_line;
   char *null_pointer;
   char *prog_name = strtok_r((char *) command_line, " ", &null_pointer);
 
   struct intr_frame if_;
   bool success;
-
-  init_process();
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -92,6 +91,8 @@ start_process (void *command_line)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (prog_name, command_line, &if_.eip, &if_.esp);
+
+  init_process(process_info->parent);
 
   /* If load failed, quit. */
   palloc_free_page (prog_name);
