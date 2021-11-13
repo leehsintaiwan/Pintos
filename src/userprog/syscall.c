@@ -24,6 +24,11 @@ static void seek (int fd, unsigned position);
 static unsigned tell (int fd);
 static void close (int fd);
 
+static bool is_valid_address (const void *addr)
+{
+ return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
+}
+
 void
 syscall_init (void) 
 {
@@ -41,7 +46,7 @@ syscall_handler (struct intr_frame *f)
  // Terminates Pintos
 static void halt (void) 
 {
-
+  shutdown_power_off();
 }
 
 // Terminates the current user program
@@ -92,12 +97,26 @@ static int filesize (int fd)
 // Reads size bytes from file fd  into buffer
 static int read (int fd, const void *buffer, unsigned size)
 {
-  return 0;
+
+  if (!is_valid_address(buffer)) {
+    return -1;
+  }
+
+  if (fd == STDIN_FILENO) {
+    return input_getc();
+  }
+
+  return size;
 }
 
 // Writes size bytes from buffer into file fd
 static int write (int fd, const void *buffer, unsigned size)
 {
+
+  if (!is_valid_address(buffer)) {
+    return -1;
+  }
+
   int fileSize = filesize(fd);
   unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
 
@@ -122,8 +141,3 @@ static unsigned tell (int fd)
 // Closes fd
 static void close (int fd)
 {}
-
-static bool is_valid_address (const void *addr)
-{
- return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
-}
