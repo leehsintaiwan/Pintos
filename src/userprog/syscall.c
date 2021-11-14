@@ -106,10 +106,50 @@ static bool remove (const char *file)
   return success;
 }
 
-// Opens file, returns -1 if file could not be opened, otherwise returns fd
+/* Opens the file called file. 
+   Returns a nonnegative integer handle called a “file descriptor” (fd),
+   or -1 if the file could not be opened. */
 static int open (const char *file)
 {
-  return 0;
+  if (!is_string_valid(file))
+  {
+    return -1;
+  }
+  
+  lock_acquire (&filesys_lock);
+  
+  /* Attempt to open file. */
+  struct file *open_file = filesys_open (file);
+  if (!open_file)
+  {
+    lock_release (&filesys_lock);
+    return -1;
+  }
+
+  /* Allocate memory. */
+  struct fd *file_desc = palloc_get_page (0);
+  if (!file_desc)
+  {
+    lock_release (&filesys_lock);
+    return -1;
+  }
+
+  /* Assign file info to file descriptor. */
+  file_desc->file = open_file;
+  file_desc->process = thread_current()->tid;
+
+  struct list* fd_list = &thread_current()->open_fd;
+  if (list_empty(fd_list)) {
+    file_desc->id = 2;
+  }
+  else {
+    file_desc->id = (list_entry(list_back(fd_list), struct fd, elem)->id) + 1;
+  }
+  list_push_back(fd_list, &(file_desc->elem));
+
+  lock_release (&filesys_lock);
+  return file_desc->id;
+
 }
 
 // Returns filesize of file
@@ -226,8 +266,7 @@ static bool is_string_valid (char *str)
 }
 
 
-
-/* UNUSED function. Simple address validity check. 
+/* Simple address validity check. 
    Use other helpers for more efficient checking. */
 static bool is_valid_address (const void *addr)
 {

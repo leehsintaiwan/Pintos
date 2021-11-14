@@ -103,6 +103,9 @@ struct thread
     struct process *process;            /* Stores process information */
 
 #ifdef USERPROG
+
+    struct list open_fd; /* List of open file descriptors. */
+
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
