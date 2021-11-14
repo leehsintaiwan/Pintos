@@ -27,6 +27,7 @@ static unsigned tell (int fd);
 static void close (int fd);
 
 /* Helper functions. */
+static struct fd *find_fd (struct thread *t, int fd_id);
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
@@ -152,10 +153,19 @@ static int open (const char *file)
 
 }
 
-// Returns filesize of file
+/* Returns the size, in bytes, of the file open as fd. */
 static int filesize (int fd)
 {
-  return 0;
+  lock_acquire (&filesys_lock);
+  struct fd *file_desc = find_fd (thread_current(), fd);
+  if (!file_desc)
+  {
+    lock_release (&filesys_lock);
+    return -1;
+  }
+  int size = file_length (file_desc->file);
+  lock_release (&filesys_lock);
+  return size;
 }
 
 // Reads size bytes from file fd  into buffer
@@ -205,6 +215,29 @@ static unsigned tell (int fd)
 // Closes fd
 static void close (int fd)
 {}
+
+/* Helper Functions */
+
+/* Find the file descriptor in thread t using the 
+   given file descriptor id. */
+static struct fd *find_fd (struct thread *t, int fd_id)
+{
+  ASSERT (t);
+
+  if (fd_id < 2) {
+    return NULL;
+  }
+
+	for (struct list_elem *e = list_begin (&t->open_fd); 
+       e != list_end (&t->open_fd);
+	     e = list_next (e))
+	{
+		struct fd *file_desc = list_entry (e, struct fd, elem);
+		if (file_desc->id == fd_id)
+			return file_desc;
+	}
+	return NULL;
+}
 
 
 /* Memory Access Helpers */
