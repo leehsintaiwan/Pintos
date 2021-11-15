@@ -208,7 +208,6 @@ static int read (int fd, const void *buffer, unsigned size)
 
     lock_release (&filesys_lock);
   }
-
   return num_bytes;
 }
 
@@ -228,7 +227,17 @@ static int write (int fd, const void *buffer, unsigned size)
     return sizeToWrite;
   }
 
-  return 0;
+  lock_acquire(&filesys_lock);
+  struct fd *file_desc = find_fd(thread_current(), fd);
+
+  if (!file_desc) {
+    lock_release(&filesys_lock);
+    return -1;
+  }
+
+  int bytes_written = file_write(file_desc->file, buffer, size);
+  lock_release(&filesys_lock);
+  return bytes_written;
 }
 
 /* Changes the next byte to be read or written in open file fd 
@@ -345,7 +354,7 @@ static bool is_string_valid (char *str)
   int character = get_user ((uint8_t *) str);
   if (character == -1)
   {
-    return false
+    return false;
   }
   int i = 1;
   while (character != "\0")
@@ -353,7 +362,7 @@ static bool is_string_valid (char *str)
     character = get_user ((uint8_t *) (str + i));
     if (character == -1)
     {
-      return false
+      return false;
     }
     i++;
   }
