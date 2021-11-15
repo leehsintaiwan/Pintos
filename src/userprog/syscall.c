@@ -110,7 +110,10 @@ static void exit (int status)
 // Run executable
 static pid_t exec (const char *file) 
 {
-  return process_execute(file);
+  file_deny_write(file);
+  tid_t thread_id = process_execute(file);
+  file_allow_write(file);
+  return thread_id;
 }
 
 // Wait for child process
