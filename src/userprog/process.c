@@ -32,6 +32,8 @@ struct process_info
 {
   char *command_line;
   struct process *parent;
+  struct semaphore *wait_load;
+  bool load_success;
 };
 
 /* Starts a new thread running a user program loaded from
@@ -62,6 +64,11 @@ process_execute (const char *cmd_line)
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
   if (tid == TID_ERROR)
     palloc_free_page (cl_copy); 
+
+  sema_down(process_info.wait_load);
+  if (!process_info.load_success)
+    return TID_ERROR;
+
   return tid;
 }
 
@@ -96,14 +103,16 @@ start_process (void *info)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (prog_name, command_line, &if_.eip, &if_.esp);
+  process->load_success = load (prog_name, command_line, &if_.eip, &if_.esp);
 
   init_process(process_info->parent);
 
   /* If load failed, quit. */
   palloc_free_page (prog_name);
-  if (!success) 
+  if (!process->load_success) 
     thread_exit ();
+
+  sema_up(process->wait_load);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
