@@ -5,10 +5,13 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include <inttypes.h>
-#include "stdint.h"
+#include "lib/stdint.h"
 #include "process.h"
 #include "devices/shutdown.h"
-#include "stdio.h"
+#include "lib/stdio.h"
+#include "threads/palloc.h"
+#include "devices/input.h"
+#include "threads/vaddr.h"
 
 #define NUM_OF_SYSCALLS 13
 
@@ -36,7 +39,6 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
 static int copy_bytes (void *source, void *dest, size_t size);
-static bool is_valid_address (const void *addr);
 
 static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
 
@@ -67,7 +69,7 @@ syscall_handler (struct intr_frame *f)
 
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
-  int32_t *args = get_arguments(f->esp);
+  int32_t *args = get_arguments(&f->esp);
   syscall_function[syscall_no](args);
 
   // Ensure to add check if return is -1
@@ -77,7 +79,7 @@ syscall_handler (struct intr_frame *f)
 }
 
  // Terminates Pintos
-static void halt (int32_t *args) 
+static void halt (int32_t *args UNUSED) 
 {
   shutdown_power_off();
 }
@@ -95,10 +97,8 @@ static void exit (int32_t *args)
 // Run executable
 static pid_t exec (int32_t *args) 
 {
-  const char *file = args[0];
-  file_deny_write(file);
+  const char *file = (char *) args[0];
   tid_t thread_id = process_execute(file);
-  file_allow_write(file);
   return thread_id;
 }
 
@@ -113,9 +113,9 @@ static int wait (int32_t *args)
    Returns true if successful, false otherwise. */
 static bool create (int32_t *args) 
 {
-  const char *file = args[0];
+  const char *file = (char *) args[0];
   unsigned initial_size = args[1];
-  if (!is_string_valid(file))
+  if (!is_string_valid((char *) file))
   {
     return false;
   }
@@ -131,8 +131,8 @@ static bool create (int32_t *args)
    Returns true if successful, false otherwise. */
 static bool remove (int32_t *args)
 {
-  const char *file = args[0];
-  if (!is_string_valid(file))
+  const char *file = (char *) args[0];
+  if (!is_string_valid((char *) file))
   {
     return false;
   }
@@ -149,8 +149,8 @@ static bool remove (int32_t *args)
    or -1 if the file could not be opened. */
 static int open (int32_t *args)
 {
-  const char *file = args[0];
-  if (!is_string_valid(file))
+  const char *file = (char *) args[0];
+  if (!is_string_valid((char *) file))
   {
     return -1;
   }
@@ -214,9 +214,9 @@ static int filesize (int32_t *args)
 static int read (int32_t *args)
 {
   int fd = args[0];
-  const void *buffer = args[1];
+  const void *buffer = (void *) args[1];
   unsigned size = args[2];
-  if (!is_buffer_valid(buffer, size)) 
+  if (!is_buffer_valid((void *) buffer, size)) 
   {
     return -1;
   }
@@ -228,7 +228,7 @@ static int read (int32_t *args)
     /* Must fill buffer from STDIN. */
     for (unsigned i = 0; i < size; i++) 
     {
-      if (!put_user(buffer + i, input_getc())) 
+      if (!put_user((void *) (buffer + i), input_getc())) 
       {
         lock_release (&filesys_lock);
         return -1;
@@ -240,10 +240,10 @@ static int read (int32_t *args)
   {
     lock_acquire (&filesys_lock);
     num_bytes = -1;
-    struct fd *file_desc = find_file (fd);
+    struct fd *file_desc = find_fd (thread_current(), fd);
     if (file_desc) 
     {
-      num_bytes = file_read (file_desc->file, buffer, size);
+      num_bytes = file_read (file_desc->file, (void *) buffer, size);
     }
 
     lock_release (&filesys_lock);
@@ -258,9 +258,9 @@ static int read (int32_t *args)
 static int write (int32_t *args)
 {
   int fd = args[0];
-  const void *buffer = args[1];
+  const void *buffer = (void *) args[1];
   unsigned size = args[2];
-  if (!is_buffer_valid(buffer, size)) 
+  if (!is_buffer_valid((void *) buffer, size)) 
   {
     return -1;
   }
@@ -464,7 +464,7 @@ static bool is_buffer_valid (void *addr, int size)
    Returns the number of byte copied or -1 if failed. */
 static int copy_bytes (void *source, void *dest, size_t size)
 {
-  for (unsigned i = 0; i < size; i) 
+  for (unsigned i = 0; i < size; i++) 
   {
     int32_t val = get_user (source + i);
     if (val == -1)
@@ -481,10 +481,3 @@ static int copy_bytes (void *source, void *dest, size_t size)
   return size;
 }
 
-
-/* Simple address validity check. 
-   Use other helpers for more efficient checking. */
-static bool is_valid_address (const void *addr)
-{
-  return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
-}
