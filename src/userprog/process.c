@@ -76,7 +76,7 @@ static void init_process(struct process *parent)
 {
   struct process *child = (struct process *) malloc(sizeof(struct process));
   child->pid = thread_current()->tid;;
-  child->exit_status = -1;
+  child->exit_status = TID_ERROR;
   list_init(&child->child_process_list);
   sema_init(&child->wait_child, 0);
   child->parent_died = false;

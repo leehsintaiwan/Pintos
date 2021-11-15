@@ -45,8 +45,37 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-  uint32_t systemCallNo = *(uint32_t*) f->esp;
+  uint32_t syscall_no = *(uint32_t *) f->esp;
   //printf ("system call number: %"PRIU32"\n", systemCallNo);
+
+  switch (syscall_no) {
+    case SYS_HALT:
+      break;
+    case SYS_EXIT:
+      break;
+    case SYS_EXEC:
+      break;
+    case SYS_WAIT:
+      break;
+    case SYS_CREATE:
+      break;
+    case SYS_REMOVE:
+      break;
+    case SYS_OPEN:
+      break;
+    case SYS_FILESIZE:
+      break;
+    case SYS_READ:
+      break;
+    case SYS_WRITE:
+      break;
+    case SYS_SEEK:
+      break;
+    case SYS_TELL:
+      break;
+    case SYS_CLOSE:
+      break;
+  }
 
   // Ensure to add check if return is -1
   // Check if the current thread is holding the filesys_lock
