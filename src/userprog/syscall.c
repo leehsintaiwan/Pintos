@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include "process.h"
+#include "devices/shutdown.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -41,7 +42,7 @@ syscall_handler (struct intr_frame *f)
  // Terminates Pintos
 static void halt (void) 
 {
-
+  shutdown_power_off();
 }
 
 // Terminates the current user program
@@ -56,7 +57,7 @@ static void exit (int status)
 // Run executable
 static pid_t exec (const char *file) 
 {
-  return -1;
+  return process_execute(file);
 }
 
 // Wait for child process
