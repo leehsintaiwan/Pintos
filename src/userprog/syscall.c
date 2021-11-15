@@ -15,19 +15,19 @@
 static void syscall_handler (struct intr_frame *);
 
 /* System calls. */
-static void halt (void);
-static void exit (int status);
-static pid_t exec (const char *file);
-static int wait (pid_t pid);
-static bool create (const char *file, unsigned initial_size);
-static bool remove (const char *file);
-static int open (const char *file);
-static int filesize (int fd);
-static int read (int fd, const void *buffer, unsigned size);
-static int write (int fd, const void *buffer, unsigned size);
-static void seek (int fd, unsigned position);
-static unsigned tell (int fd);
-static void close (int fd);
+static void halt (int32_t *args);
+static void exit (int32_t *args);
+static pid_t exec (int32_t *args);
+static int wait (int32_t *args);
+static bool create (int32_t *args);
+static bool remove (int32_t *args);
+static int open (int32_t *args);
+static int filesize (int32_t *args);
+static int read (int32_t *args);
+static int write (int32_t *args);
+static void seek (int32_t *args);
+static unsigned tell (int32_t *args);
+static void close (int32_t *args);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -68,7 +68,7 @@ syscall_handler (struct intr_frame *f)
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
   int32_t *args = get_arguments(f->esp);
-  syscall_function[syscall_no](f, args);
+  syscall_function[syscall_no](args);
 
   // Ensure to add check if return is -1
   // Check if the current thread is holding the filesys_lock
@@ -77,14 +77,15 @@ syscall_handler (struct intr_frame *f)
 }
 
  // Terminates Pintos
-static void halt (void) 
+static void halt (int32_t *args) 
 {
   shutdown_power_off();
 }
 
 // Terminates the current user program
-static void exit (int status) 
+static void exit (int32_t *args) 
 {
+  int status = args[0];
   struct thread *current = thread_current();
   current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
@@ -92,8 +93,9 @@ static void exit (int status)
 }
 
 // Run executable
-static pid_t exec (const char *file) 
+static pid_t exec (int32_t *args) 
 {
+  const char *file = args[0];
   file_deny_write(file);
   tid_t thread_id = process_execute(file);
   file_allow_write(file);
@@ -101,15 +103,18 @@ static pid_t exec (const char *file)
 }
 
 // Wait for child process
-static int wait (pid_t pid) 
+static int wait (int32_t *args) 
 {
+  pid_t pid = args[0];
   return process_wait(pid);
 }
 
 /* Creates a new file called file initially initial size bytes in size. 
    Returns true if successful, false otherwise. */
-static bool create (const char *file, unsigned initial_size) 
+static bool create (int32_t *args) 
 {
+  const char *file = args[0];
+  unsigned initial_size = args[1];
   if (!is_string_valid(file))
   {
     return false;
@@ -124,8 +129,9 @@ static bool create (const char *file, unsigned initial_size)
 
 /* Deletes the file called file. 
    Returns true if successful, false otherwise. */
-static bool remove (const char *file)
+static bool remove (int32_t *args)
 {
+  const char *file = args[0];
   if (!is_string_valid(file))
   {
     return false;
@@ -141,8 +147,9 @@ static bool remove (const char *file)
 /* Opens the file called file. 
    Returns a nonnegative integer handle called a “file descriptor” (fd),
    or -1 if the file could not be opened. */
-static int open (const char *file)
+static int open (int32_t *args)
 {
+  const char *file = args[0];
   if (!is_string_valid(file))
   {
     return -1;
@@ -186,8 +193,9 @@ static int open (const char *file)
 }
 
 /* Returns the size, in bytes, of the file open as fd. */
-static int filesize (int fd)
+static int filesize (int32_t *args)
 {
+  int fd = args[0];
   int size = -1;
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -203,8 +211,11 @@ static int filesize (int fd)
    Returns the number of bytes actually read (0 at end of file), 
    or -1 if the file could not be read 
    (due to a condition other than end of file). */
-static int read (int fd, const void *buffer, unsigned size)
+static int read (int32_t *args)
 {
+  int fd = args[0];
+  const void *buffer = args[1];
+  unsigned size = args[2];
   if (!is_buffer_valid(buffer, size)) 
   {
     return -1;
@@ -244,8 +255,11 @@ static int read (int fd, const void *buffer, unsigned size)
 /* Writes size bytes from buffer to the open file fd. 
    Returns the number of bytes actually written, which may 
    be less than size if some bytes could not be written. */
-static int write (int fd, const void *buffer, unsigned size)
+static int write (int32_t *args)
 {
+  int fd = args[0];
+  const void *buffer = args[1];
+  unsigned size = args[2];
   if (!is_buffer_valid(buffer, size)) 
   {
     return -1;
@@ -278,8 +292,10 @@ static int write (int fd, const void *buffer, unsigned size)
 
 /* Changes the next byte to be read or written in open file fd 
    to position, expressed in bytes from the beginning of the file. */
-static void seek (int fd, unsigned position)
+static void seek (int32_t *args)
 {
+  int fd = args[0];
+  unsigned position = args[1];
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
 
@@ -293,8 +309,9 @@ static void seek (int fd, unsigned position)
 
 /* Returns the position of the next byte to be read or written 
    in open file fd, expressed in bytes from the beginning of the file. */
-static unsigned tell (int fd)
+static unsigned tell (int32_t *args)
 {
+  int fd = args[0];
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
   unsigned position = -1;
@@ -311,8 +328,9 @@ static unsigned tell (int fd)
 /* Closes file descriptor fd. 
    Exiting or terminating a process implicitly closes all its open file
    descriptors, as if by calling this function for each one. */
-static void close (int fd)
+static void close (int32_t *args)
 {
+  int fd = args[0];
   lock_acquire (&filesys_lock);
 
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -352,13 +370,17 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 	return NULL;
 }
 
+
+/* Get the arguments from the function pointer. */
 static int32_t *get_arguments(void *esp)
 {
   int32_t args[3];
-  copy_bytes (esp + 4, &args[0], 4);
-  
-
-
+  if (copy_bytes (esp + 4, &args[0], 4) == -1 ||
+      copy_bytes (esp + 8, &args[1], 4) == -1 ||
+      copy_bytes (esp + 12, &args[2], 4) == -1)
+  {
+    // TODO: HANDLE ERROR
+  }
   return args;
 }
 
@@ -439,7 +461,7 @@ static bool is_buffer_valid (void *addr, int size)
 
 
 /* Copy bytes from the source into the destination address.
-   Returns the number of byte copied. */
+   Returns the number of byte copied or -1 if failed. */
 static int copy_bytes (void *source, void *dest, size_t size)
 {
   for (unsigned i = 0; i < size; i) 
