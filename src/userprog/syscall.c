@@ -211,9 +211,23 @@ static unsigned tell (int fd)
   return 0;
 }
 
-// Closes fd
+/* Closes file descriptor fd. 
+   Exiting or terminating a process implicitly closes all its open file
+   descriptors, as if by calling this function for each one. */
 static void close (int fd)
-{}
+{
+  lock_acquire (&filesys_lock);
+
+  struct fd *file_desc = find_fd (thread_current(), fd);
+  if (file_desc && thread_current()->tid == file_desc->process)
+  {
+    list_remove (&file_desc->elem);
+    file_close (file_desc->file);
+    palloc_free_page (file_desc);
+  }
+
+  lock_release (&filesys_lock);
+}
 
 /* Helper Functions */
 
