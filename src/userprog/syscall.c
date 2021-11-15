@@ -7,11 +7,8 @@
 #include <inttypes.h>
 #include "stdint.h"
 #include "process.h"
-<<<<<<< HEAD
 #include "devices/shutdown.h"
-=======
 #include "stdio.h"
->>>>>>> e3da7110633b6a75c426f20d385ac963d9a69cd5
 
 static void syscall_handler (struct intr_frame *);
 
