@@ -39,24 +39,25 @@ static int copy_bytes (void *source, void *dest, size_t size);
 static bool is_valid_address (const void *addr);
 
 static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
-syscall_function[SYS_HALT] = &halt;
-syscall_function[SYS_EXIT] = &exit;
-syscall_function[SYS_EXEC] = &exec;
-syscall_function[SYS_WAIT] = &wait;
-syscall_function[SYS_CREATE] = &create;
-syscall_function[SYS_REMOVE] = &remove;
-syscall_function[SYS_OPEN] = &open;
-syscall_function[SYS_FILESIZE] = &filesize;
-syscall_function[SYS_READ] = &read;
-syscall_function[SYS_WRITE] = &write;
-syscall_function[SYS_SEEK] = &seek;
-syscall_function[SYS_TELL] = &tell;
-syscall_function[SYS_CLOSE] = &close;
+
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  syscall_function[SYS_HALT] = &halt;
+  syscall_function[SYS_EXIT] = &exit;
+  syscall_function[SYS_EXEC] = &exec;
+  syscall_function[SYS_WAIT] = &wait;
+  syscall_function[SYS_CREATE] = &create;
+  syscall_function[SYS_REMOVE] = &remove;
+  syscall_function[SYS_OPEN] = &open;
+  syscall_function[SYS_FILESIZE] = &filesize;
+  syscall_function[SYS_READ] = &read;
+  syscall_function[SYS_WRITE] = &write;
+  syscall_function[SYS_SEEK] = &seek;
+  syscall_function[SYS_TELL] = &tell;
+  syscall_function[SYS_CLOSE] = &close;
 }
 
 static void
@@ -346,6 +347,16 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 	}
 
 	return NULL;
+}
+
+static int32_t *get_arguments(void *esp)
+{
+  int32_t args[3];
+  copy_bytes (esp + 4, &args[0], 4);
+  
+
+
+  return args;
 }
 
 /* Memory Access Helpers */
