@@ -212,14 +212,16 @@ static int read (int fd, const void *buffer, unsigned size)
   return num_bytes;
 }
 
-// Writes size bytes from buffer into file fd
+/* Writes size bytes from buffer to the open file fd. 
+   Returns the number of bytes actually written, which may 
+   be less than size if some bytes could not be written. */
 static int write (int fd, const void *buffer, unsigned size)
 {
-
-  if (!is_valid_address(buffer)) {
+  if (!is_buffer_valid(buffer, size)) {
     return -1;
   }
 
+  /* Write to console. */
   int fileSize = filesize(fd);
   unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
 
@@ -228,6 +230,7 @@ static int write (int fd, const void *buffer, unsigned size)
     return sizeToWrite;
   }
 
+  /* Write to file. */
   lock_acquire(&filesys_lock);
   struct fd *file_desc = find_fd(thread_current(), fd);
 
