@@ -103,16 +103,16 @@ start_process (void *info)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  process->load_success = load (prog_name, command_line, &if_.eip, &if_.esp);
+  process_info->load_success = load (prog_name, command_line, &if_.eip, &if_.esp);
 
   init_process(process_info->parent);
 
   /* If load failed, quit. */
   palloc_free_page (prog_name);
-  if (!process->load_success) 
+  if (!process_info->load_success) 
     thread_exit ();
 
-  sema_up(process->wait_load);
+  sema_up(process_info->wait_load);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
