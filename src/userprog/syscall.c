@@ -52,7 +52,8 @@ syscall_handler (struct intr_frame *f)
 
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
-  switch (syscall_no) {
+  switch (syscall_no) 
+  {
     case SYS_HALT:
       break;
     case SYS_EXIT:
@@ -185,17 +186,18 @@ static int open (const char *file)
   file_desc->process = thread_current()->tid;
 
   struct list* fd_list = &thread_current()->open_fd;
-  if (list_empty(fd_list)) {
+  if (list_empty(fd_list)) 
+  {
     file_desc->id = 2;
   }
-  else {
+  else 
+  
     file_desc->id = (list_entry(list_back(fd_list), struct fd, elem)->id) + 1;
   }
   list_push_back(fd_list, &(file_desc->elem));
 
   lock_release (&filesys_lock);
   return file_desc->id;
-
 }
 
 /* Returns the size, in bytes, of the file open as fd. */
@@ -218,7 +220,6 @@ static int filesize (int fd)
    (due to a condition other than end of file). */
 static int read (int fd, const void *buffer, unsigned size)
 {
-
   if (!is_buffer_valid(buffer, size)) {
     return -1;
   }
@@ -248,6 +249,7 @@ static int read (int fd, const void *buffer, unsigned size)
 
     lock_release (&filesys_lock);
   }
+
   return num_bytes;
 }
 
@@ -256,7 +258,8 @@ static int read (int fd, const void *buffer, unsigned size)
    be less than size if some bytes could not be written. */
 static int write (int fd, const void *buffer, unsigned size)
 {
-  if (!is_buffer_valid(buffer, size)) {
+  if (!is_buffer_valid(buffer, size)) 
+  {
     return -1;
   }
 
@@ -264,7 +267,8 @@ static int write (int fd, const void *buffer, unsigned size)
   int fileSize = filesize(fd);
   unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
 
-  if (fd == STDOUT_FILENO) {
+  if (fd == STDOUT_FILENO) 
+  {
     putbuf(buffer, sizeToWrite);
     return sizeToWrite;
   }
@@ -273,7 +277,8 @@ static int write (int fd, const void *buffer, unsigned size)
   lock_acquire(&filesys_lock);
   struct fd *file_desc = find_fd(thread_current(), fd);
 
-  if (!file_desc) {
+  if (!file_desc) 
+  {
     lock_release(&filesys_lock);
     return -1;
   }
@@ -338,7 +343,8 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 {
   ASSERT (t);
 
-  if (fd_id < 2) {
+  if (fd_id < 2) 
+  {
     return NULL;
   }
 
@@ -350,6 +356,7 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 		if (file_desc->id == fd_id)
 			return file_desc;
 	}
+
 	return NULL;
 }
 
@@ -452,5 +459,5 @@ static int copy_bytes (void *source, void *dest, size_t size)
    Use other helpers for more efficient checking. */
 static bool is_valid_address (const void *addr)
 {
- return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
+  return is_user_vaddr (addr) && (pagedir_get_page (thread_current()->pagedir, addr) != NULL);
 }
