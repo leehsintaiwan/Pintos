@@ -33,6 +33,7 @@ static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
+static int copy_bytes (void *source, void *dest, size_t size);
 static bool is_valid_address (const void *addr);
 
 
@@ -48,6 +49,9 @@ syscall_handler (struct intr_frame *f)
   uint32_t syscall_no = *(uint32_t *) f->esp;
   //printf ("system call number: %"PRIU32"\n", systemCallNo);
 
+
+  // Add function to get up to argument
+  // Store args in arg 1, arg 2 and arg 3
   switch (syscall_no) {
     case SYS_HALT:
       break;
@@ -58,6 +62,12 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT:
       break;
     case SYS_CREATE:
+      const char *file_name;
+      unsigned size;
+      copy_bytes (f->esp + 4, &file_name, sizeof (file_name));
+      copy_bytes (f->esp + 8, &size, sizeof (size));
+      bool success = create (file_name, size);
+      // handle success
       break;
     case SYS_REMOVE:
       break;
@@ -216,7 +226,7 @@ static int read (int fd, const void *buffer, unsigned size)
   int num_bytes;
   if (fd == STDIN_FILENO) {
     /* Must fill buffer from STDIN. */
-    for (unsigned i = 0; i < size; ++i) 
+    for (unsigned i = 0; i < size; i++) 
     {
       if (!put_user(buffer + i, input_getc())) 
       {
@@ -350,7 +360,7 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 UADDR must be below PHYS_BASE.
 Returns the byte value if successful, -1 if a segfault
 occurred. */
-static int
+static int32_t
 get_user (const uint8_t *uaddr)
 {
   /* Check user address is below PHYS_BASE. */
@@ -414,6 +424,27 @@ static bool is_buffer_valid (void *addr, int size)
     }
   }
   return true;
+}
+
+
+/* Copy bytes from the source into the destination address.
+   Returns the number of byte copied. */
+static int copy_bytes (void *source, void *dest, size_t size)
+{
+  for (unsigned i = 0; i < size; i) 
+  {
+    int32_t val = get_user (source + i);
+    if (val == -1)
+    {
+      return -1;
+    }
+    // Copy the first byte only
+    if (!put_user(dest + i, val & 0xFF)) 
+    {
+      return -1;
+    }
+  }
+  return size;
 }
 
 
