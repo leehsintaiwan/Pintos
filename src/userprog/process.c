@@ -65,6 +65,7 @@ process_execute (const char *cmd_line)
   if (tid == TID_ERROR)
     palloc_free_page (cl_copy); 
 
+  sema_init(process_info.wait_load, 0);
   sema_down(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
@@ -78,7 +79,7 @@ static void init_process(struct process *parent)
   child->pid = thread_current()->tid;;
   child->exit_status = TID_ERROR;
   list_init(&child->child_process_list);
-  sema_init(&child->wait_child, 0);
+  sema_init(child->wait_child, 0);
   child->parent_died = false;
   list_push_back(&parent->child_process_list, &child->child_process_elem);
   thread_current()->process = child;
@@ -96,7 +97,6 @@ start_process (void *info)
   char *prog_name = strtok_r((char *) command_line, " ", &null_pointer);
 
   struct intr_frame if_;
-  bool success;
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -141,6 +141,7 @@ static struct process *get_child_process(struct list *child_list, pid_t child_pi
 static void free_process(struct process *process)
 {
   list_remove(&process->child_process_elem);
+  free(process->wait_child);
   free(process);
 }
 
@@ -161,7 +162,7 @@ process_wait (tid_t child_tid UNUSED)
   if (!child) {
     return -1;
   }
-  sema_down(&child->wait_child);
+  sema_down(child->wait_child);
   int status = child->exit_status;
   free_process(child);
   return status;
@@ -203,7 +204,7 @@ process_exit (void)
 
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
-  sema_up(&process->wait_child);
+  sema_up(process->wait_child);
   if (process->parent_died)
   {
     free_process(process);
