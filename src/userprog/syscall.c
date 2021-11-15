@@ -208,7 +208,17 @@ static int write (int fd, const void *buffer, unsigned size)
     return sizeToWrite;
   }
 
-  return 0;
+  lock_acquire(&filesys_lock);
+  struct fd *file_desc = find_fd(thread_current(), fd);
+
+  if (!file_desc) {
+    lock_release(&filesys_lock);
+    return -1;
+  }
+
+  int bytes_written = file_write(file_desc->file, buffer, size);
+  lock_release(&filesys_lock);
+  return bytes_written;
 }
 
 /* Changes the next byte to be read or written in open file fd 
