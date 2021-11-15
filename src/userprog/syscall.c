@@ -176,10 +176,20 @@ static int read (int fd, const void *buffer, unsigned size)
   }
 
   if (fd == STDIN_FILENO) {
-    return input_getc();
+    return strlcpy(buffer, input_getc(), size);
   }
 
-  return size;
+  lock_acquire(&filesys_lock);
+  struct fd *file_desc = find_fd(thread_current(), fd);
+
+  if (!file_desc) {
+    lock_release(&filesys_lock);
+    return -1;
+  }
+
+  int bytes_read = file_read(file_desc->file, buffer, size);
+  lock_release(&filesys_lock);
+  return bytes_read;
 }
 
 // Writes size bytes from buffer into file fd
@@ -315,7 +325,7 @@ static bool is_string_valid (char *str)
   int character = get_user ((uint8_t *) str);
   if (character == -1)
   {
-    return false
+    return false;
   }
   int i = 1;
   while (character != "\0")
@@ -323,7 +333,7 @@ static bool is_string_valid (char *str)
     character = get_user ((uint8_t *) (str + i));
     if (character == -1)
     {
-      return false
+      return false;
     }
     i++;
   }
