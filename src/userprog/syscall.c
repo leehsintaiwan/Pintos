@@ -10,6 +10,8 @@
 #include "devices/shutdown.h"
 #include "stdio.h"
 
+#define NUM_OF_SYSCALLS 13
+
 static void syscall_handler (struct intr_frame *);
 
 /* System calls. */
@@ -36,6 +38,20 @@ static bool is_buffer_valid (void *addr, int size);
 static int copy_bytes (void *source, void *dest, size_t size);
 static bool is_valid_address (const void *addr);
 
+static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
+syscall_function[SYS_HALT] = &halt;
+syscall_function[SYS_EXIT] = &exit;
+syscall_function[SYS_EXEC] = &exec;
+syscall_function[SYS_WAIT] = &wait;
+syscall_function[SYS_CREATE] = &create;
+syscall_function[SYS_REMOVE] = &remove;
+syscall_function[SYS_OPEN] = &open;
+syscall_function[SYS_FILESIZE] = &filesize;
+syscall_function[SYS_READ] = &read;
+syscall_function[SYS_WRITE] = &write;
+syscall_function[SYS_SEEK] = &seek;
+syscall_function[SYS_TELL] = &tell;
+syscall_function[SYS_CLOSE] = &close;
 
 void
 syscall_init (void) 
@@ -52,40 +68,8 @@ syscall_handler (struct intr_frame *f)
 
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
-  switch (syscall_no) {
-    case SYS_HALT:
-      break;
-    case SYS_EXIT:
-      break;
-    case SYS_EXEC:
-      break;
-    case SYS_WAIT:
-      break;
-    case SYS_CREATE:
-      const char *file_name;
-      unsigned size;
-      copy_bytes (f->esp + 4, &file_name, sizeof (file_name));
-      copy_bytes (f->esp + 8, &size, sizeof (size));
-      bool success = create (file_name, size);
-      // handle success
-      break;
-    case SYS_REMOVE:
-      break;
-    case SYS_OPEN:
-      break;
-    case SYS_FILESIZE:
-      break;
-    case SYS_READ:
-      break;
-    case SYS_WRITE:
-      break;
-    case SYS_SEEK:
-      break;
-    case SYS_TELL:
-      break;
-    case SYS_CLOSE:
-      break;
-  }
+  int32_t *args = get_arguments(f->esp);
+  syscall_function[syscall_no](f, args);
 
   // Ensure to add check if return is -1
   // Check if the current thread is holding the filesys_lock
