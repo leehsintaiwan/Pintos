@@ -201,14 +201,33 @@ static int write (int fd, const void *buffer, unsigned size)
   return 0;
 }
 
-// Changes next byte to be read or written in fd to position
+/* Changes the next byte to be read or written in open file fd 
+   to position, expressed in bytes from the beginning of the file. */
 static void seek (int fd, unsigned position)
-{}
+{
+  lock_acquire (&filesys_lock);
+  struct fd *file_desc = find_fd (thread_current(), fd);
 
-// Returns position of next byte to be written or read in fd
+  if (file_desc && position > 0 && file_desc->file)
+  {
+    file_seek (file_desc->file, position);
+  }
+  lock_release (&filesys_lock);
+}
+
+/* Returns the position of the next byte to be read or written 
+   in open file fd, expressed in bytes from the beginning of the file. */
 static unsigned tell (int fd)
 {
-  return 0;
+  lock_acquire (&filesys_lock);
+  struct fd *file_desc = find_fd (thread_current(), fd);
+  unsigned position = -1;
+  if (file_desc && file_desc->file)
+  {
+    position = file_tell (file_desc->file);
+  }
+  lock_release (&filesys_lock);
+  return position;
 }
 
 /* Closes file descriptor fd. 
