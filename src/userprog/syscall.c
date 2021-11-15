@@ -1,13 +1,13 @@
 #include "userprog/syscall.h"
-#include <stdio.h>
 #include <syscall-nr.h>
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include <inttypes.h>
-#include <stdint.h>
+#include "stdint.h"
 #include "process.h"
+#include "stdio.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -31,6 +31,7 @@ static struct fd *find_fd (struct thread *t, int fd_id);
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
+static bool is_buffer_valid (void *addr, int size);
 static bool is_valid_address (const void *addr);
 
 
@@ -45,6 +46,10 @@ syscall_handler (struct intr_frame *f)
 {
   uint32_t systemCallNo = *(uint32_t*) f->esp;
   //printf ("system call number: %"PRIU32"\n", systemCallNo);
+
+  // Ensure to add check if return is -1
+  // Check if the current thread is holding the filesys_lock
+  // and if it is then release it
   thread_exit ();
 }
 
@@ -167,19 +172,44 @@ static int filesize (int fd)
   return size;
 }
 
-// Reads size bytes from file fd  into buffer
+/* Reads size bytes from the file open as fd into buffer. 
+   Returns the number of bytes actually read (0 at end of file), 
+   or -1 if the file could not be read 
+   (due to a condition other than end of file). */
 static int read (int fd, const void *buffer, unsigned size)
 {
 
-  if (!is_valid_address(buffer)) {
+  if (!is_buffer_valid(buffer, size)) {
     return -1;
   }
 
+  int num_bytes;
   if (fd == STDIN_FILENO) {
-    return input_getc();
+    /* Must fill buffer from STDIN. */
+    for (unsigned i = 0; i < size; ++i) 
+    {
+      if (!put_user(buffer + i, input_getc())) 
+      {
+        lock_release (&filesys_lock);
+        return -1;
+      }
+    }
+    num_bytes = size;
+  } 
+  else
+  {
+    lock_acquire (&filesys_lock);
+    num_bytes = -1;
+    struct fd *file_desc = find_file (fd);
+    if (file_desc) 
+    {
+      num_bytes = file_read (file_desc->file, buffer, size);
+    }
+
+    lock_release (&filesys_lock);
   }
 
-  return size;
+  return num_bytes;
 }
 
 // Writes size bytes from buffer into file fd
@@ -326,6 +356,20 @@ static bool is_string_valid (char *str)
       return false
     }
     i++;
+  }
+  return true;
+}
+
+/* Check that a buffer of given size is valid. */
+static bool is_buffer_valid (void *addr, int size)
+{
+  char *buffer = (char *) addr;
+  for (int i = 0; i < size; i++)
+  {
+    if (get_user ((uint8_t *) (buffer + i) == -1))
+    {
+      return false;
+    }
   }
   return true;
 }
