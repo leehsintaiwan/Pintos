@@ -18,19 +18,19 @@
 static void syscall_handler (struct intr_frame *);
 
 /* System calls. */
-static void halt (int32_t *args);
-static void exit (int32_t *args);
-static pid_t exec (int32_t *args);
-static int wait (int32_t *args);
-static bool create (int32_t *args);
-static bool remove (int32_t *args);
-static int open (int32_t *args);
-static int filesize (int32_t *args);
-static int read (int32_t *args);
-static int write (int32_t *args);
-static void seek (int32_t *args);
-static unsigned tell (int32_t *args);
-static void close (int32_t *args);
+static void halt (int32_t *args, struct intr_frame *f);
+static void exit (int32_t *args, struct intr_frame *f);
+static void exec (int32_t *args, struct intr_frame *f);
+static void wait (int32_t *args, struct intr_frame *f);
+static void create (int32_t *args, struct intr_frame *f);
+static void remove (int32_t *args, struct intr_frame *f);
+static void open (int32_t *args, struct intr_frame *f);
+static void filesize (int32_t *args, struct intr_frame *f);
+static void read (int32_t *args, struct intr_frame *f);
+static void write (int32_t *args, struct intr_frame *f);
+static void seek (int32_t *args, struct intr_frame *f);
+static void tell (int32_t *args, struct intr_frame *f);
+static void close (int32_t *args, struct intr_frame *f);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -70,7 +70,7 @@ syscall_handler (struct intr_frame *f)
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
   int32_t *args = get_arguments(&f->esp);
-  syscall_function[syscall_no](args);
+  syscall_function[syscall_no](args, f);
 
   // Ensure to add check if return is -1
   // Check if the current thread is holding the filesys_lock
@@ -78,14 +78,20 @@ syscall_handler (struct intr_frame *f)
   thread_exit();
 }
 
+// Stores the return value in EAX on frame
+static void return_frame(struct intr_frame *f, int value)
+{
+  f->eax = value;
+}
+
  // Terminates Pintos
-static void halt (int32_t *args UNUSED) 
+static void halt (int32_t *args UNUSED, struct intr_frame *f UNUSED) 
 {
   shutdown_power_off();
 }
 
 // Terminates the current user program
-static void exit (int32_t *args) 
+static void exit (int32_t *args, struct intr_frame *f UNUSED) 
 {
   int status = args[0];
   struct thread *current = thread_current();
@@ -95,64 +101,64 @@ static void exit (int32_t *args)
 }
 
 // Run executable
-static pid_t exec (int32_t *args) 
+static void exec (int32_t *args, struct intr_frame *f) 
 {
   const char *file = (char *) args[0];
   tid_t thread_id = process_execute(file);
-  return thread_id;
+  return_frame(f, thread_id);
 }
 
 // Wait for child process
-static int wait (int32_t *args) 
+static void wait (int32_t *args, struct intr_frame *f) 
 {
   pid_t pid = args[0];
-  return process_wait(pid);
+  return_frame(f, process_wait(pid));
 }
 
 /* Creates a new file called file initially initial size bytes in size. 
    Returns true if successful, false otherwise. */
-static bool create (int32_t *args) 
+static void create (int32_t *args, struct intr_frame *f) 
 {
   const char *file = (char *) args[0];
   unsigned initial_size = args[1];
   if (!is_string_valid((char *) file))
   {
-    return false;
+    return_frame(f, false);
   }
 
   bool success;
   lock_acquire (&filesys_lock);
   success = filesys_create(file, initial_size);
   lock_release (&filesys_lock);
-  return success;
+  return_frame(f, success);
 }
 
 /* Deletes the file called file. 
    Returns true if successful, false otherwise. */
-static bool remove (int32_t *args)
+static void remove (int32_t *args, struct intr_frame *f)
 {
   const char *file = (char *) args[0];
   if (!is_string_valid((char *) file))
   {
-    return false;
+    return_frame(f, false);
   }
 
   bool success;
   lock_acquire (&filesys_lock);
   success = filesys_remove(file);
   lock_release (&filesys_lock);
-  return success;
+  return_frame(f, success);
 }
 
 /* Opens the file called file. 
    Returns a nonnegative integer handle called a “file descriptor” (fd),
    or -1 if the file could not be opened. */
-static int open (int32_t *args)
+static void open (int32_t *args, struct intr_frame *f)
 {
   const char *file = (char *) args[0];
   if (!is_string_valid((char *) file))
   {
-    return -1;
+    return_frame(f, -1);
   }
   
   lock_acquire (&filesys_lock);
@@ -162,7 +168,7 @@ static int open (int32_t *args)
   if (!open_file)
   {
     lock_release (&filesys_lock);
-    return -1;
+    return_frame(f, -1);
   }
 
   /* Allocate memory. */
@@ -170,7 +176,7 @@ static int open (int32_t *args)
   if (!file_desc)
   {
     lock_release (&filesys_lock);
-    return -1;
+    return_frame(f, -1);
   }
 
   /* Assign file info to file descriptor. */
@@ -189,11 +195,11 @@ static int open (int32_t *args)
   list_push_back(fd_list, &(file_desc->elem));
 
   lock_release (&filesys_lock);
-  return file_desc->id;
+  return_frame(f, file_desc->id);
 }
 
 /* Returns the size, in bytes, of the file open as fd. */
-static int filesize (int32_t *args)
+static void filesize (int32_t *args, struct intr_frame *f)
 {
   int fd = args[0];
   int size = -1;
@@ -204,21 +210,21 @@ static int filesize (int32_t *args)
     size = file_length (file_desc->file);
   }
   lock_release (&filesys_lock);
-  return size;
+  return_frame(f, size);
 }
 
 /* Reads size bytes from the file open as fd into buffer. 
    Returns the number of bytes actually read (0 at end of file), 
    or -1 if the file could not be read 
    (due to a condition other than end of file). */
-static int read (int32_t *args)
+static void read (int32_t *args, struct intr_frame *f)
 {
   int fd = args[0];
   const void *buffer = (void *) args[1];
   unsigned size = args[2];
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return -1;
+    return_frame(f, -1);
   }
 
   int num_bytes;
@@ -231,7 +237,7 @@ static int read (int32_t *args)
       if (!put_user((void *) (buffer + i), input_getc())) 
       {
         lock_release (&filesys_lock);
-        return -1;
+        return_frame(f, -1);
       }
     }
     num_bytes = size;
@@ -249,20 +255,20 @@ static int read (int32_t *args)
     lock_release (&filesys_lock);
   }
 
-  return num_bytes;
+  return_frame(f, num_bytes);
 }
 
 /* Writes size bytes from buffer to the open file fd. 
    Returns the number of bytes actually written, which may 
    be less than size if some bytes could not be written. */
-static int write (int32_t *args)
+static void write (int32_t *args, struct intr_frame *f)
 {
   int fd = args[0];
   const void *buffer = (void *) args[1];
   unsigned size = args[2];
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return -1;
+    return_frame(f, -1);
   }
 
   /* Write to console. */
@@ -272,7 +278,7 @@ static int write (int32_t *args)
   if (fd == STDOUT_FILENO) 
   {
     putbuf(buffer, sizeToWrite);
-    return sizeToWrite;
+    return_frame(f, sizeToWrite);
   }
 
   /* Write to file. */
@@ -282,17 +288,17 @@ static int write (int32_t *args)
   if (!file_desc) 
   {
     lock_release(&filesys_lock);
-    return -1;
+    return_frame(f, -1);
   }
 
   int bytes_written = file_write(file_desc->file, buffer, size);
   lock_release(&filesys_lock);
-  return bytes_written;
+  return_frame(f, bytes_written);
 }
 
 /* Changes the next byte to be read or written in open file fd 
    to position, expressed in bytes from the beginning of the file. */
-static void seek (int32_t *args)
+static void seek (int32_t *args, struct intr_frame *f UNUSED)
 {
   int fd = args[0];
   unsigned position = args[1];
@@ -309,7 +315,7 @@ static void seek (int32_t *args)
 
 /* Returns the position of the next byte to be read or written 
    in open file fd, expressed in bytes from the beginning of the file. */
-static unsigned tell (int32_t *args)
+static void tell (int32_t *args, struct intr_frame *f)
 {
   int fd = args[0];
   lock_acquire (&filesys_lock);
@@ -322,13 +328,13 @@ static unsigned tell (int32_t *args)
   }
 
   lock_release (&filesys_lock);
-  return position;
+  return_frame(f, position);
 }
 
 /* Closes file descriptor fd. 
    Exiting or terminating a process implicitly closes all its open file
    descriptors, as if by calling this function for each one. */
-static void close (int32_t *args)
+static void close (int32_t *args, struct intr_frame *f UNUSED)
 {
   int fd = args[0];
   lock_acquire (&filesys_lock);
