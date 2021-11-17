@@ -8,7 +8,7 @@
 #include "lib/stdint.h"
 #include "process.h"
 #include "devices/shutdown.h"
-#include "lib/stdio.h"
+#include <stdio.h>
 #include "threads/palloc.h"
 #include "devices/input.h"
 #include "threads/vaddr.h"
@@ -39,7 +39,6 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
 static int copy_bytes (void *source, void *dest, size_t size);
-static int32_t *get_arguments(void *esp);
 
 static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
 
@@ -70,7 +69,13 @@ syscall_handler (struct intr_frame *f)
 
   // Add function to get up to argument
   // Store args in arg 1, arg 2 and arg 3
-  int32_t *args = get_arguments(&f->esp);
+  int32_t args[3];
+  if (copy_bytes (&f->esp + 4, &args[0], 4) == -1 ||
+      copy_bytes (&f->esp + 8, &args[1], 4) == -1 ||
+      copy_bytes (&f->esp + 12, &args[2], 4) == -1)
+  {
+    // TODO: HANDLE ERROR
+  }
   syscall_function[syscall_no](args, f);
 
   // Ensure to add check if return is -1
@@ -269,7 +274,7 @@ static void write (int32_t *args, struct intr_frame *f)
   unsigned size = args[2];
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return_frame(f, -1);
+    return_frame(f, 0);
   }
 
   /* Write to console. */
@@ -286,7 +291,7 @@ static void write (int32_t *args, struct intr_frame *f)
   if (!file_desc) 
   {
     lock_release(&filesys_lock);
-    return_frame(f, -1);
+    return_frame(f, 0);
   }
 
   int bytes_written = file_write(file_desc->file, buffer, size);
@@ -374,20 +379,6 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 	return NULL;
 }
 
-
-/* Get the arguments from the function pointer. */
-static int32_t *get_arguments(void *esp)
-{
-  int32_t args[3];
-  if (copy_bytes (esp + 4, &args[0], 4) == -1 ||
-      copy_bytes (esp + 8, &args[1], 4) == -1 ||
-      copy_bytes (esp + 12, &args[2], 4) == -1)
-  {
-    // TODO: HANDLE ERROR
-  }
-  return args;
-}
-
 /* Memory Access Helpers */
 
 /* Reads a byte at user virtual address UADDR.
@@ -435,7 +426,7 @@ static bool is_string_valid (char *str)
     return false;
   }
   int i = 1;
-  while (character != "\0")
+  while (character != '\0')
   {
     character = get_user ((uint8_t *) (str + i));
     if (character == -1)
@@ -454,7 +445,7 @@ static bool is_buffer_valid (void *addr, int size)
   char *buffer = (char *) addr;
   for (int i = 0; i < size; i++)
   {
-    if (get_user ((uint8_t *) (buffer + i) == -1))
+    if (get_user ((uint8_t *) (buffer + i)) == -1)
     {
       return false;
     }
