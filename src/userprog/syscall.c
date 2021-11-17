@@ -62,6 +62,7 @@ syscall_init (void)
   syscall_function[SYS_SEEK] = &seek;
   syscall_function[SYS_TELL] = &tell;
   syscall_function[SYS_CLOSE] = &close;
+  lock_init (&filesys_lock);
 }
 
 static void
@@ -87,10 +88,20 @@ static void halt (struct intr_frame *f UNUSED)
 // Terminates the current user program
 static void exit (struct intr_frame *f) 
 {
-  uint32_t status = get_num (f->esp + 4);
+  int status = get_num (f->esp + 4);
+
   struct thread *current = thread_current();
   current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
+  thread_exit();
+}
+
+// Terminates the current user program due to exception
+void exit_exception (void)
+{
+  close_all();
+  struct thread *current = thread_current();
+  current->process->exit_status = -1;
   thread_exit();
 }
 
@@ -218,7 +229,7 @@ static void read (struct intr_frame *f)
   unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return_frame(f, -1);
+    exit_exception ();
   }
 
   int num_bytes;
@@ -245,6 +256,11 @@ static void read (struct intr_frame *f)
     {
       num_bytes = file_read (file_desc->file, (void *) buffer, size);
     }
+    else
+    {
+      lock_release (&filesys_lock);
+      exit_exception ();
+    }
 
     lock_release (&filesys_lock);
   }
@@ -262,7 +278,7 @@ static void write (struct intr_frame *f)
   unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return_frame(f, 0);
+    exit_exception ();
   }
 
   /* Write to console. */
@@ -279,7 +295,7 @@ static void write (struct intr_frame *f)
   if (!file_desc) 
   {
     lock_release(&filesys_lock);
-    return_frame(f, 0);
+    exit_exception ();
   }
 
   int bytes_written = file_write(file_desc->file, buffer, size);
@@ -325,7 +341,7 @@ static void tell (struct intr_frame *f)
 /* Closes file descriptor fd. 
    Exiting or terminating a process implicitly closes all its open file
    descriptors, as if by calling this function for each one. */
-static void close (struct intr_frame *f UNUSED)
+static void close (struct intr_frame *f)
 {
   int fd = (int) get_num (f->esp + 4);
   lock_acquire (&filesys_lock);
@@ -343,6 +359,30 @@ static void close (struct intr_frame *f UNUSED)
 }
 
 /* Helper Functions */
+
+/* Function to close all files open by current thread. */
+void close_all(void)
+{
+	if (!lock_held_by_current_thread (&filesys_lock))
+  {
+		lock_acquire (&filesys_lock);
+  }
+  struct thread *t = thread_current();
+  for (struct list_elem *e = list_begin (&t->open_fd); 
+       e != list_end (&t->open_fd);
+	     e = list_next (e))
+	{
+		int fd = list_entry (e, struct fd, elem)->id;
+		struct fd *file_desc = find_fd (t, fd);
+		if (file_desc)
+    {
+      list_remove (&file_desc->elem);
+      file_close (file_desc->file);
+      palloc_free_page (file_desc);
+    }
+	}
+	lock_release (&filesys_lock);
+}
 
 /* Find the file descriptor in thread t using the 
    given file descriptor id. */
@@ -372,8 +412,7 @@ static void *verify_pointer (void *addr)
 {
   if (get_user ((uint8_t *) addr) == -1) 
   {
-    // exit(1); failed exit
-    return NULL;
+    exit_exception ();
   }
 }
 
@@ -388,19 +427,6 @@ static uint32_t get_num (void *addr)
   verify_pointer (addr);
   return *((uint32_t *) addr);
 }
-
-// /* Get the arguments from the function pointer. */
-// static int32_t *get_arguments(void *esp)
-// {
-//   int32_t args[3];
-//   if (copy_bytes (esp + 4, &args[0], 4) == -1 ||
-//       copy_bytes (esp + 8, &args[1], 4) == -1 ||
-//       copy_bytes (esp + 12, &args[2], 4) == -1)
-//   {
-//     // TODO: HANDLE ERROR
-//   }
-//   return args;
-// }
 
 /* Memory Access Helpers */
 
@@ -476,26 +502,4 @@ static bool is_buffer_valid (void *addr, int size)
 
   return true;
 }
-
-
-// /* Copy bytes from the source into the destination address.
-//    Returns the number of byte copied or -1 if failed. */
-// static int copy_bytes (void *source, void *dest, size_t size)
-// {
-//   for (unsigned i = 0; i < size; i++) 
-//   {
-//     int32_t val = get_user (source + i);
-//     if (val == -1)
-//     {
-//       return -1;
-//     }
-//     // Copy the first byte only
-//     if (!put_user(dest + i, val & 0xFF)) 
-//     {
-//       return -1;
-//     }
-//   }
-  
-//   return size;
-// }
 

@@ -20,7 +20,7 @@ void process_activate (void);
 
 struct process {
   pid_t pid;
-  uint32_t exit_status;
+  int exit_status;
   struct list child_process_list;
   struct list_elem child_process_elem;
   struct semaphore *wait_child;
