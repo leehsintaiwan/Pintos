@@ -39,6 +39,7 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
 static int copy_bytes (void *source, void *dest, size_t size);
+static int32_t *get_arguments(void *esp);
 
 static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
 
@@ -272,13 +273,10 @@ static void write (int32_t *args, struct intr_frame *f)
   }
 
   /* Write to console. */
-  int fileSize = filesize(fd);
-  unsigned sizeToWrite = (size > fileSize) ? fileSize : size;
-
   if (fd == STDOUT_FILENO) 
   {
-    putbuf(buffer, sizeToWrite);
-    return_frame(f, sizeToWrite);
+    putbuf(buffer, size);
+    return_frame(f, size);
   }
 
   /* Write to file. */
