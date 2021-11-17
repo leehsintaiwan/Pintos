@@ -155,7 +155,7 @@ static void free_process(struct process *process)
  * This function will be implemented in task 2.
  * For now, it does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
   struct process *parent = thread_current()->process;
   struct process *child = get_child_process(&parent->child_process_list, child_tid);
