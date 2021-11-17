@@ -105,6 +105,8 @@ struct thread
 #ifdef USERPROG
     struct list open_fd; /* List of open file descriptors. */
 
+    struct file *executable; /* This process' executable file. */
+
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif

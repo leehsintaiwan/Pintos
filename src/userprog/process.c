@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -184,6 +185,19 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+
+  /* Allow write to executable once no longer running. */
+  if (!lock_held_by_current_thread(&filesys_lock))
+  {
+    lock_acquire(&filesys_lock);
+  }
+  if (cur->executable)
+  {
+    file_allow_write(cur->executable);
+    file_close(cur->executable);
+  }
+  lock_release(&filesys_lock);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -402,6 +416,13 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
+
+  /* Deny writes to a process’s executable. */
+  lock_acquire (&filesys_lock);
+  thread_current()->executable = file;
+  file_deny_write (file);
+  lock_release (&filesys_lock);
+
 
   /* Add arguments to stack. */
   if (!push_arguments (esp, file_name, args))
