@@ -443,7 +443,7 @@ static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Push arguments onto memory stack. */
 static bool
-push_arguments (void **esp, const char *file_name, char *args)
+push_arguments (void **esp, const char *file_name UNUSED, char *args)
 {
 
   char *arg_addresses[MAX_ARGS_AMOUNT];

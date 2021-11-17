@@ -8,7 +8,7 @@
 #include "lib/stdint.h"
 #include "process.h"
 #include "devices/shutdown.h"
-#include "lib/stdio.h"
+#include <stdio.h>
 #include "threads/palloc.h"
 #include "devices/input.h"
 #include "threads/vaddr.h"
@@ -39,7 +39,6 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
 static int copy_bytes (void *source, void *dest, size_t size);
-static int32_t *get_arguments(void *esp);
 
 static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
 
@@ -261,7 +260,7 @@ static void write (struct intr_frame *f)
   unsigned size = args[2];
   if (!is_buffer_valid((void *) buffer, size)) 
   {
-    return_frame(f, -1);
+    return_frame(f, 0);
   }
 
   /* Write to console. */
@@ -278,7 +277,7 @@ static void write (struct intr_frame *f)
   if (!file_desc) 
   {
     lock_release(&filesys_lock);
-    return_frame(f, -1);
+    return_frame(f, 0);
   }
 
   int bytes_written = file_write(file_desc->file, buffer, size);
@@ -447,7 +446,7 @@ static bool is_string_valid (char *str)
     return false;
   }
   int i = 1;
-  while (character != "\0")
+  while (character != '\0')
   {
     character = get_user ((uint8_t *) (str + i));
     if (character == -1)
@@ -466,7 +465,7 @@ static bool is_buffer_valid (void *addr, int size)
   char *buffer = (char *) addr;
   for (int i = 0; i < size; i++)
   {
-    if (get_user ((uint8_t *) (buffer + i) == -1))
+    if (get_user ((uint8_t *) (buffer + i)) == -1)
     {
       return false;
     }
