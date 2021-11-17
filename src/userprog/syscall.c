@@ -408,7 +408,7 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 }
 
 /* Verify user pointer, then dereference it. */
-static void *verify_pointer (void *addr)
+static void verify_pointer (void *addr)
 {
   if (get_user ((uint8_t *) addr) == -1) 
   {

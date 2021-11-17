@@ -1,4 +1,5 @@
 #include "userprog/exception.h"
+#include "../userprog/syscall.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include "userprog/gdt.h"
