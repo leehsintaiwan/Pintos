@@ -330,7 +330,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-  printf("%s-\n", file_name);
+  printf("%s\n", file_name);
   /* Open executable file. */
   lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
@@ -413,6 +413,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
         }
     }
 
+  printf("Before setup stack\n");
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
@@ -420,16 +421,16 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
-  /* Deny writes to a process’s executable. */
-  lock_acquire (&filesys_lock);
-  thread_current()->executable = file;
-  file_deny_write (file);
-  lock_release (&filesys_lock);
-
   printf("Just before push args\n");
   /* Add arguments to stack. */
   if (!push_arguments (esp, file_name, args))
     goto done;
+
+  /* Deny writes to a process's executable. */
+  lock_acquire (&filesys_lock);
+  thread_current()->executable = file;
+  file_deny_write (file);
+  lock_release (&filesys_lock);
 
   success = true;
 
@@ -501,6 +502,9 @@ push_arguments (void **esp, const char *file_name UNUSED, char *args)
 	/* Push return address of 0 onto stack. */
 	*esp -= sizeof (void (*) (void));
 	memset (*esp, 0, sizeof (void (*) (void)));
+
+  printf("Push args\n");
+	hex_dump (0, *esp, PHYS_BASE - *esp, 1);
 
   return true;
 }

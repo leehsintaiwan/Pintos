@@ -102,6 +102,7 @@ void exit_exception (void)
   close_all();
   struct thread *current = thread_current();
   current->process->exit_status = -1;
+  printf ("%s: exit(%d)\n", current->name, -1);
   thread_exit();
 }
 
