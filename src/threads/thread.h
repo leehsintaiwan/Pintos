@@ -99,10 +99,11 @@ struct thread
     struct list_elem donator_elem;      /* List element for donators list */
     struct lock *wait_lock;             /* The lock causing the thread to wait */
 
+
+#ifdef USERPROG
     /* Owned by process.c */
     struct process *process;            /* Stores process information */
 
-#ifdef USERPROG
     struct list open_fd; /* List of open file descriptors. */
 
     struct file *executable; /* This process' executable file. */
