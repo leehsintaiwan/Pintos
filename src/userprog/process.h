@@ -11,7 +11,7 @@
 /* Max number of arguments passed. */
 #define MAX_ARGS_AMOUNT 32
 
-typedef int pid_t;
+typedef uint32_t pid_t;
 
 tid_t process_execute (const char *cmd_line);
 int process_wait (tid_t);
@@ -20,7 +20,7 @@ void process_activate (void);
 
 struct process {
   pid_t pid;
-  int exit_status;
+  uint32_t exit_status;
   struct list child_process_list;
   struct list_elem child_process_elem;
   struct semaphore *wait_child;

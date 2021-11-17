@@ -77,7 +77,7 @@ process_execute (const char *cmd_line)
 static void init_process(struct process *parent)
 {
   struct process *child = (struct process *) malloc(sizeof(struct process));
-  child->pid = thread_current()->tid;;
+  child->pid = thread_current()->tid;
   child->exit_status = TID_ERROR;
   list_init(&child->child_process_list);
   sema_init(child->wait_child, 0);
@@ -91,7 +91,7 @@ static void init_process(struct process *parent)
 static void
 start_process (void *info)
 {
-
+  printf("Start process\n");
   struct process_info *process_info = (struct process_info *) info;
   char *command_line = process_info->command_line;
   char *null_pointer;
@@ -317,6 +317,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, char *args, void (**eip) (void), void **esp) 
 {
+  printf("Start load\n");
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -329,7 +330,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-
+  printf("%s \n", file_name);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
@@ -423,7 +424,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   file_deny_write (file);
   lock_release (&filesys_lock);
 
-
+  printf("Just before push args\n");
   /* Add arguments to stack. */
   if (!push_arguments (esp, file_name, args))
     goto done;
@@ -466,6 +467,8 @@ push_arguments (void **esp, const char *file_name UNUSED, char *args)
     *esp -= token_memory;
     arg_addresses[argc] = *esp;
     argc++;
+    printf("%s \n", token);
+    printf("testing\n");
     memcpy (*esp, token, token_memory);
     curr_memory += token_memory;
 	}
@@ -617,6 +620,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
+  printf("Setup stack\n");
   uint8_t *kpage;
   bool success = false;
 
@@ -625,10 +629,20 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
+      {
         *esp = PHYS_BASE;
+        printf("Setup stack success\n");
+      }
       else
+      {
         palloc_free_page (kpage);
+        printf("Setup stack failure\n");
+      }
     }
+  else
+  {
+    printf("kpage is null\n");
+  }
   return success;
 }
 

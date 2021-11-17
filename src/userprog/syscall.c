@@ -38,9 +38,11 @@ static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
 static bool is_buffer_valid (void *addr, int size);
-static int copy_bytes (void *source, void *dest, size_t size);
+static char *get_address (void *addr);
+static uint32_t get_num (void *addr);
 
-static void (*syscall_function[NUM_OF_SYSCALLS])(int32_t *, struct intr_frame *);
+
+static void (*syscall_function[NUM_OF_SYSCALLS])(struct intr_frame *);
 
 
 void
@@ -85,7 +87,7 @@ static void halt (struct intr_frame *f UNUSED)
 // Terminates the current user program
 static void exit (struct intr_frame *f) 
 {
-  int status = load_num(f->esp + 4);
+  uint32_t status = get_num (f->esp + 4);
   struct thread *current = thread_current();
   current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
@@ -95,7 +97,7 @@ static void exit (struct intr_frame *f)
 // Run executable
 static void exec (struct intr_frame *f) 
 {
-  const char *file = (char *) args[0];
+  char *file = get_address (f->esp + 4);
   tid_t thread_id = process_execute(file);
   return_frame(f, thread_id);
 }
@@ -103,7 +105,7 @@ static void exec (struct intr_frame *f)
 // Wait for child process
 static void wait (struct intr_frame *f) 
 {
-  pid_t pid = args[0];
+  pid_t pid = get_num (f->esp + 4);
   return_frame(f, process_wait(pid));
 }
 
@@ -111,8 +113,8 @@ static void wait (struct intr_frame *f)
    Returns true if successful, false otherwise. */
 static void create (struct intr_frame *f) 
 {
-  const char *file = (char *) args[0];
-  unsigned initial_size = args[1];
+  const char *file = get_address (f->esp + 4);
+  unsigned initial_size = get_num (f->esp + 8);
   if (!is_string_valid((char *) file))
   {
     return_frame(f, false);
@@ -129,7 +131,7 @@ static void create (struct intr_frame *f)
    Returns true if successful, false otherwise. */
 static void remove (struct intr_frame *f)
 {
-  const char *file = (char *) args[0];
+  const char *file = get_address (f->esp + 4);
   if (!is_string_valid((char *) file))
   {
     return_frame(f, false);
@@ -143,11 +145,11 @@ static void remove (struct intr_frame *f)
 }
 
 /* Opens the file called file. 
-   Returns a nonnegative integer handle called a “file descriptor” (fd),
+   Returns a nonnegative integer handle called a "file descriptor" (fd),
    or -1 if the file could not be opened. */
 static void open (struct intr_frame *f)
 {
-  const char *file = (char *) args[0];
+  const char *file = get_address (f->esp + 4);
   if (!is_string_valid((char *) file))
   {
     return_frame(f, -1);
@@ -193,7 +195,7 @@ static void open (struct intr_frame *f)
 /* Returns the size, in bytes, of the file open as fd. */
 static void filesize (struct intr_frame *f)
 {
-  int fd = args[0];
+  int fd = (int) get_num (f->esp + 4);
   int size = -1;
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -211,9 +213,9 @@ static void filesize (struct intr_frame *f)
    (due to a condition other than end of file). */
 static void read (struct intr_frame *f)
 {
-  int fd = args[0];
-  const void *buffer = (void *) args[1];
-  unsigned size = args[2];
+  int fd = (int) get_num (f->esp + 4);
+  const void *buffer = (void *) get_address (f->esp + 8);
+  unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
     return_frame(f, -1);
@@ -255,9 +257,9 @@ static void read (struct intr_frame *f)
    be less than size if some bytes could not be written. */
 static void write (struct intr_frame *f)
 {
-  int fd = args[0];
-  const void *buffer = (void *) args[1];
-  unsigned size = args[2];
+  int fd = (int) get_num (f->esp + 4);
+  const void *buffer = (void *) get_address (f->esp + 8);
+  unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
     return_frame(f, 0);
@@ -289,8 +291,8 @@ static void write (struct intr_frame *f)
    to position, expressed in bytes from the beginning of the file. */
 static void seek (struct intr_frame *f UNUSED)
 {
-  int fd = args[0];
-  unsigned position = args[1];
+  int fd = (int) get_num (f->esp + 4);
+  unsigned position = get_num (f->esp + 8);
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
 
@@ -306,7 +308,7 @@ static void seek (struct intr_frame *f UNUSED)
    in open file fd, expressed in bytes from the beginning of the file. */
 static void tell (struct intr_frame *f)
 {
-  int fd = args[0];
+  int fd = (int) get_num (f->esp + 4);
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
   unsigned position = -1;
@@ -325,7 +327,7 @@ static void tell (struct intr_frame *f)
    descriptors, as if by calling this function for each one. */
 static void close (struct intr_frame *f UNUSED)
 {
-  int fd = args[0];
+  int fd = (int) get_num (f->esp + 4);
   lock_acquire (&filesys_lock);
 
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -366,21 +368,22 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 }
 
 /* Verify user pointer, then dereference it. */
-static char *verify_pointer (void *addr)
+static void *verify_pointer (void *addr)
 {
   if (get_user ((uint8_t *) addr) == -1) 
   {
-    fail ();
+    // exit(1); failed exit
+    return NULL;
   }
 }
 
 static char *get_address (void *addr)
 {
   verify_pointer (addr);
-  return *((char **) addr);
+  return ((char *) addr);
 }
 
-static char *get_num (void *addr)
+static uint32_t get_num (void *addr)
 {
   verify_pointer (addr);
   return *((uint32_t *) addr);
