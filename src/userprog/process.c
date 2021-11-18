@@ -65,7 +65,15 @@ process_execute (const char *cmd_line)
   char *null_pointer;
   char *prog_name = strtok_r(cl_copy, " ", &null_pointer);
 
+  process_info.wait_load = malloc(sizeof(struct semaphore));
   sema_init(process_info.wait_load, 0);
+
+  /* Deny writes to a process's executable. */
+  lock_acquire (&filesys_lock);
+  thread_current()->executable = filesys_open (prog_name);
+  file_deny_write (thread_current()->executable);
+  lock_release (&filesys_lock);
+
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
@@ -436,11 +444,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   if (!push_arguments (esp, file_name, args))
     goto done;
 
-  /* Deny writes to a process's executable. */
-  lock_acquire (&filesys_lock);
-  thread_current()->executable = file;
-  file_deny_write (file);
-  lock_release (&filesys_lock);
 
   success = true;
 

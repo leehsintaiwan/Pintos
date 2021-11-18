@@ -89,7 +89,7 @@ static void halt (struct intr_frame *f UNUSED)
 static void exit (struct intr_frame *f) 
 {
   int status = get_num (f->esp + 4);
-
+  // close_all();
   struct thread *current = thread_current();
   current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
@@ -99,7 +99,7 @@ static void exit (struct intr_frame *f)
 // Terminates the current user program due to exception
 void exit_exception (void)
 {
-  close_all();
+  // close_all();
   struct thread *current = thread_current();
   current->process->exit_status = -1;
   printf ("%s: exit(%d)\n", current->name, -1);
@@ -207,7 +207,7 @@ static void open (struct intr_frame *f)
 /* Returns the size, in bytes, of the file open as fd. */
 static void filesize (struct intr_frame *f)
 {
-  int fd = (int) get_num (f->esp + 4);
+  int fd = get_num (f->esp + 4);
   int size = -1;
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -225,8 +225,8 @@ static void filesize (struct intr_frame *f)
    (due to a condition other than end of file). */
 static void read (struct intr_frame *f)
 {
-  int fd = (int) get_num (f->esp + 4);
-  const void *buffer = (void *) get_address (f->esp + 8);
+  int fd = get_num (f->esp + 4);
+  const void *buffer = get_address (f->esp + 8);
   unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
@@ -274,8 +274,8 @@ static void read (struct intr_frame *f)
    be less than size if some bytes could not be written. */
 static void write (struct intr_frame *f)
 {
-  int fd = (int) get_num (f->esp + 4);
-  const void *buffer = (void *) get_address (f->esp + 8);
+  int fd = get_num (f->esp + 4);
+  const void *buffer = get_address (f->esp + 8);
   unsigned size = get_num (f->esp + 12);
   if (!is_buffer_valid((void *) buffer, size)) 
   {
@@ -308,7 +308,7 @@ static void write (struct intr_frame *f)
    to position, expressed in bytes from the beginning of the file. */
 static void seek (struct intr_frame *f UNUSED)
 {
-  int fd = (int) get_num (f->esp + 4);
+  int fd = get_num (f->esp + 4);
   unsigned position = get_num (f->esp + 8);
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -325,7 +325,7 @@ static void seek (struct intr_frame *f UNUSED)
    in open file fd, expressed in bytes from the beginning of the file. */
 static void tell (struct intr_frame *f)
 {
-  int fd = (int) get_num (f->esp + 4);
+  int fd = get_num (f->esp + 4);
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
   unsigned position = -1;
@@ -344,7 +344,7 @@ static void tell (struct intr_frame *f)
    descriptors, as if by calling this function for each one. */
 static void close (struct intr_frame *f)
 {
-  int fd = (int) get_num (f->esp + 4);
+  int fd = get_num (f->esp + 4);
   lock_acquire (&filesys_lock);
 
   struct fd *file_desc = find_fd (thread_current(), fd);
@@ -420,7 +420,7 @@ static void verify_pointer (void *addr)
 static char *get_address (void *addr)
 {
   verify_pointer (addr);
-  return *((char *) addr);
+  return *((char **) addr);
 }
 
 static uint32_t get_num (void *addr)
