@@ -44,6 +44,11 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Pintos does not implement strtok() because it is not thread safe. 
 >> Explain the problem with strtok() and how strtok_r() avoids this issue.
 
+strtok() uses a static buffer while parsing, which means that while it is being called,
+no other function can also call strtok() so it cannot be used by multiple threads.
+strtok_r() take an extra argument, which is used to store the state between calls.
+This means that the state can be used in other threads so strtok_r() is reentrant and thread-safe.
+
 >> A4: (3 marks)
 >> In Pintos, the kernel separates commands into an executable name and arguments. 
 >> In Unix-like systems, the shell does this separation. 
