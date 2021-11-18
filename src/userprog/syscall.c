@@ -420,7 +420,7 @@ static void verify_pointer (void *addr)
 static char *get_address (void *addr)
 {
   verify_pointer (addr);
-  return ((char *) addr);
+  return *((char *) addr);
 }
 
 static uint32_t get_num (void *addr)
