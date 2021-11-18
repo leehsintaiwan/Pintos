@@ -147,6 +147,15 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >> Describe your implementation of the "wait" system call and how it interacts 
 >> with process termination for both the parent and child.
 
+The wait system call calls the process_wait function in process.c with the
+required child tid. Process_wait checks the parent's child process list for
+matching tids, and return -1 if tid not found, which means the child process
+is either terminated by the kernal, or has been waited before already.
+The process_wait waits for the child using a semaphore, then once the child
+process terminates, it frees the child process and marks all the child process
+of that child process to parent_died, so its child process can free itself once
+they terminate, because no parent could call process_wait on them anymore.
+
 ---- SYNCHRONIZATION ----
 
 >> B6: (2 marks)
