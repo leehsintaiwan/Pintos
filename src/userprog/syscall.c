@@ -175,6 +175,7 @@ static void open (struct intr_frame *f)
   {
     lock_release (&filesys_lock);
     return_frame(f, -1);
+    return;
   }
 
   /* Allocate memory. */
@@ -183,6 +184,7 @@ static void open (struct intr_frame *f)
   {
     lock_release (&filesys_lock);
     return_frame(f, -1);
+    return;
   }
 
   /* Assign file info to file descriptor. */
@@ -244,6 +246,7 @@ static void read (struct intr_frame *f)
       {
         lock_release (&filesys_lock);
         return_frame(f, -1);
+        return;
       }
     }
     num_bytes = size;
