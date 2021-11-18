@@ -68,10 +68,6 @@ process_execute (const char *cmd_line)
   char *prog_name = strtok_r(cl_copy, " ", &null_pointer);
   process_info.process_name = prog_name;
   process_info.process_args = null_pointer;
-  // printf("cl_copy:  %s\n", null_pointer);
-  // printf("prog_name:  %s\n", prog_name);
-  // printf("process_info.command_line %s\n", process_info.command_line);
-
   process_info.wait_load = malloc(sizeof(struct semaphore));
   sema_init(process_info.wait_load, 0);
 
@@ -97,7 +93,7 @@ process_execute (const char *cmd_line)
   free(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
-  //printf("process exec\n");
+
   return tid;
 }
 
@@ -355,13 +351,13 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  //printf("filename: %s\n", file_name);
-  //printf("args: %s\n", args);
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
   /* Open executable file. */
   lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
@@ -371,8 +367,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  //lock_acquire (&filesys_lock);
-  //printf("%p\n", file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -465,8 +459,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   /* We arrive here whether the load is successful or not. */
   //file_close (file);
   
-  // if (lock_held_by_current_thread(&filesys_lock))
-  //   lock_release(&filesys_lock);
   return success;
 }
 
