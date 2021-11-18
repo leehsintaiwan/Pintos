@@ -33,16 +33,18 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Identify the purpose of each in roughly 25 words.
 
 struct process {
-  pid_t pid;
-  int exit_status;
-  struct list child_process_list;
-  struct list_elem child_process_elem;
-  struct semaphore *wait_child;
-  bool parent_died;
+  pid_t pid;                            /* PID number which maps one to one to TID*/
+  int exit_status;                      /* Exit status, -1 if killed by kernel */
+  bool exited;                          /* Indicates if process has exited */
+  struct list child_process_list;       /* Contains the list of child process */
+  struct list_elem child_process_elem;  /* list elem for assigning to parent process */
+  struct semaphore *wait_child;         /* Semaphore for waiting for this process to exit */
+  bool parent_died;                     /* Indicates if parent had exited */
 };
 
 Contains all of the information of a specific process, including its pid, exit_status, and all of its children processes. 
 wait_child is a semaphore which is up when the parent calls process_wait() to wait for a child.
+exited is true when the process is exited, and parent_died is true when the process's parent has died.
 
 struct process_info
 {
@@ -127,6 +129,8 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >> Describe how your code ensures safe memory access of user provided data from
 >> within the kernel. 
 
+* SIPAN TO-DO *
+
 >> B3: (3 marks)
 >> Suppose that we choose to verify user provided pointers by validating them 
 >> before use (i.e. using the first method described in the spec).
@@ -140,6 +144,8 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >>    (16,384 bytes) of user data.
 >> You must briefly explain the checking tactic you would use and how it applies 
 >> to each case to generate your answers.
+
+* SIPAN TO-DO *
 
 >> B4: (2 marks)
 >> When an error is detected during a system call handler, how do you ensure 
@@ -169,26 +175,45 @@ they terminate, because no parent could call process_wait on them anymore.
 >> The "exec" system call returns -1 if loading the new executable fails, so it 
 >> cannot return before the new executable has completed loading. 
 >> How does your code ensure this? 
+
+We use a semaphore wait_load in our process_info struct which is passed into
+start_process to wait for the child to laod before process_execute returns.
+
 >> How is the load success/failure status passed back to the thread that calls 
 >> "exec"?
+
+We use a process_info struct to keep track of the sucess/failure and the wait_load
+semaphore, which gets passed from process_execute into start_process.
 
 >> B7: (5 marks)
 >> Consider parent process P with child process C. 
 >> How do you ensure proper synchronization and avoid race conditions when: 
 >>   i) P calls wait(C) before C exits? 
+
 P waits for C to exit with a semaphore before retrieving its exit status.
+
 >>  ii) P calls wait(C) after C exits?
+
 In this case C would call sema_up before P calls sema_down on a shared semaphore
 stored on the process struct. The process struct for C will stay in memory before
 a parent calls process_wait on C, or C's parent is marked as died.
+
 >> iii) P terminates, without waiting, before C exits?
+
 When P terminates, it will first notify all child processes that their parent process
 has died, so no one would call process_wait on C, which means C can free its own
 process struct as soon as it exits.
+
 >>  iv) P terminates, without waiting, after C exits?
+
+When P terminates after C, notify_child_process checks if each child process has
+exited, if so then frees that child process as it is no longer required.
 
 >> Additionally, how do you ensure that all resources are freed regardless of 
 >> the above case? 
+
+All processes calls thread_exit when they exit, which calls process_exit and
+then process_exit will free the process struct if it is no longer required.
 
 ---- RATIONALE ----
 
@@ -196,6 +221,12 @@ process struct as soon as it exits.
 >> Why did you choose to implement safe access of user memory from the kernel in 
 >> the way that you did?
 
+* SIPAN TO-DO *
+
 >> B9: (2 marks)
 >> What advantages and disadvantages can you see to your design for file 
 >> descriptors?
+
+Our design for file descriptors is a struct fd which contains all of the information of a file descriptor.
+The advantage of this implementation is that all of the fields can be accessed with ease, by accessing the relevant field of the fd struct.
+Another advantage of this approach is that it is simple and flexible to modification.

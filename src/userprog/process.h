@@ -19,12 +19,13 @@ void process_exit (void);
 void process_activate (void);
 
 struct process {
-  pid_t pid;
-  int exit_status;
-  struct list child_process_list;
-  struct list_elem child_process_elem;
-  struct semaphore *wait_child;
-  bool parent_died;
+  pid_t pid;                            /* PID number */
+  int exit_status;                      /* Exit status, -1 if killed by kernel */
+  bool exited;                          /* Indicates if process has exited */
+  struct list child_process_list;       /* Contains the list of child process */
+  struct list_elem child_process_elem;  /* list elem for assigning to parent process */
+  struct semaphore *wait_child;         /* Semaphore for waiting for this process to exit */
+  bool parent_died;                     /* Indicates if parent had exited */
 };
 
 #endif /* userprog/process.h */

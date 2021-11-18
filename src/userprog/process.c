@@ -100,6 +100,7 @@ static void init_process(struct process *parent)
   child->wait_child = malloc(sizeof(struct semaphore));
   child->pid = thread_current()->tid;
   child->exit_status = TID_ERROR;
+  child->exited = false;
   list_init(&child->child_process_list);
   sema_init(child->wait_child, 0);
   if (parent != NULL) {
@@ -198,6 +199,9 @@ static void notify_child_process(struct list *child_list)
   {
     struct process *child = list_entry(e, struct process, child_process_elem);
     child->parent_died = true;
+    if (child->exited) {
+      free_process(child);
+    }
   }
 }
 
@@ -240,8 +244,9 @@ process_exit (void)
 
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
+  process->exited = true;
   sema_up(process->wait_child);
-  if (process->parent_died)
+  if (process && process->parent_died)
   {
     free_process(process);
   }
