@@ -54,6 +54,10 @@ process_execute (const char *cmd_line)
     return TID_ERROR;
   strlcpy (cl_copy, cmd_line, PGSIZE);
 
+  if (thread_current()->process == NULL) {
+    init_process(NULL);
+  }
+
   struct process_info process_info;
   process_info.command_line = cl_copy;
   process_info.parent = thread_current()->process;
@@ -76,13 +80,18 @@ process_execute (const char *cmd_line)
 
 static void init_process(struct process *parent)
 {
-  struct process *child = (struct process *) malloc(sizeof(struct process));
+  struct process *child = malloc(sizeof(struct process));
+  child->wait_child = malloc(sizeof(struct semaphore));
   child->pid = thread_current()->tid;
   child->exit_status = TID_ERROR;
   list_init(&child->child_process_list);
   sema_init(child->wait_child, 0);
-  child->parent_died = false;
-  list_push_back(&parent->child_process_list, &child->child_process_elem);
+  if (parent != NULL) {
+    child->parent_died = false;
+    list_push_back(&parent->child_process_list, &child->child_process_elem);
+  } else {
+    child->parent_died = true;
+  }
   thread_current()->process = child;
 }
 
