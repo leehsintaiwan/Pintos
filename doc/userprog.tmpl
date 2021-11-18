@@ -33,7 +33,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Identify the purpose of each in roughly 25 words.
 
 struct process {
-  pid_t pid;                            /* PID number */
+  pid_t pid;                            /* PID number which maps one to one to TID*/
   int exit_status;                      /* Exit status, -1 if killed by kernel */
   bool exited;                          /* Indicates if process has exited */
   struct list child_process_list;       /* Contains the list of child process */
@@ -175,8 +175,13 @@ they terminate, because no parent could call process_wait on them anymore.
 >> The "exec" system call returns -1 if loading the new executable fails, so it 
 >> cannot return before the new executable has completed loading. 
 >> How does your code ensure this? 
+We use a semaphore wait_load in our process_info struct which is passed into
+start_process to wait for the child to laod before process_execute returns.
+
 >> How is the load success/failure status passed back to the thread that calls 
 >> "exec"?
+We use a process_info struct to keep track of the sucess/failure and the wait_load
+semaphore, which gets passed from process_execute into start_process.
 
 >> B7: (5 marks)
 >> Consider parent process P with child process C. 
