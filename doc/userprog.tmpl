@@ -168,10 +168,18 @@ they terminate, because no parent could call process_wait on them anymore.
 >> B7: (5 marks)
 >> Consider parent process P with child process C. 
 >> How do you ensure proper synchronization and avoid race conditions when: 
->>   i) P calls wait(C) before C exits?
+>>   i) P calls wait(C) before C exits? 
+P waits for C to exit with a semaphore before retrieving its exit status.
 >>  ii) P calls wait(C) after C exits?
+In this case C would call sema_up before P calls sema_down on a shared semaphore
+stored on the process struct. The process struct for C will stay in memory before
+a parent calls process_wait on C, or C's parent is marked as died.
 >> iii) P terminates, without waiting, before C exits?
+When P terminates, it will first notify all child processes that their parent process
+has died, so no one would call process_wait on C, which means C can free its own
+process struct as soon as it exits.
 >>  iv) P terminates, without waiting, after C exits?
+
 >> Additionally, how do you ensure that all resources are freed regardless of 
 >> the above case? 
 
