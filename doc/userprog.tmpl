@@ -33,12 +33,13 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Identify the purpose of each in roughly 25 words.
 
 struct process {
-  pid_t pid;
-  int exit_status;
-  struct list child_process_list;
-  struct list_elem child_process_elem;
-  struct semaphore *wait_child;
-  bool parent_died;
+  pid_t pid;                            /* PID number */
+  int exit_status;                      /* Exit status, -1 if killed by kernel */
+  bool exited;                          /* Indicates if process has exited */
+  struct list child_process_list;       /* Contains the list of child process */
+  struct list_elem child_process_elem;  /* list elem for assigning to parent process */
+  struct semaphore *wait_child;         /* Semaphore for waiting for this process to exit */
+  bool parent_died;                     /* Indicates if parent had exited */
 };
 
 Contains all of the information of a specific process, including its pid, exit_status, and all of its children processes. 
@@ -190,9 +191,12 @@ When P terminates, it will first notify all child processes that their parent pr
 has died, so no one would call process_wait on C, which means C can free its own
 process struct as soon as it exits.
 >>  iv) P terminates, without waiting, after C exits?
-
+When P terminates after C, notify_child_process checks if each child process has
+exited, if so then frees that child process as it is no longer required.
 >> Additionally, how do you ensure that all resources are freed regardless of 
 >> the above case? 
+All processes calls thread_exit when they exit, which calls process_exit and
+then process_exit will free the process struct if it is no longer required.
 
 ---- RATIONALE ----
 
