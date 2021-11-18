@@ -233,6 +233,7 @@ static void read (struct intr_frame *f)
   if (!is_buffer_valid((void *) buffer, size)) 
   {
     exit_exception ();
+    return;
   }
 
   int num_bytes;
@@ -244,7 +245,6 @@ static void read (struct intr_frame *f)
     {
       if (!put_user((void *) (buffer + i), input_getc())) 
       {
-        lock_release (&filesys_lock);
         return_frame(f, -1);
         return;
       }
@@ -264,6 +264,7 @@ static void read (struct intr_frame *f)
     {
       lock_release (&filesys_lock);
       exit_exception ();
+      return;
     }
 
     lock_release (&filesys_lock);

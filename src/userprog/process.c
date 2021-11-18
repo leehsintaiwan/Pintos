@@ -94,9 +94,10 @@ process_execute (const char *cmd_line)
     palloc_free_page (cl_copy); 
   
   sema_down(process_info.wait_load);
+  free(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
-  printf("process exec\n");
+  //printf("process exec\n");
   return tid;
 }
 
@@ -133,16 +134,14 @@ start_process (void *info)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  process_info->load_success = load (process_info->process_name, command_line, &if_.eip, &if_.esp);
+
   init_process(process_info->parent);
+  process_info->load_success = load (process_info->process_name, command_line, &if_.eip, &if_.esp);
+  sema_up(process_info->wait_load);
 
   /* If load failed, quit. */
-  palloc_free_page (process_info->process_name);
-  
   if (!process_info->load_success) 
-    process_exit ();
-  
-  sema_up(process_info->wait_load);
+    thread_exit ();
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -227,7 +226,7 @@ process_exit (void)
   if (cur->executable)
   {
     file_allow_write(cur->executable);
-    // file_close(cur->executable);
+    file_close(cur->executable);
   }
   lock_release(&filesys_lock);
 
@@ -356,8 +355,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  printf("filename: %s\n", file_name);
-  printf("args: %s\n", args);
+  //printf("filename: %s\n", file_name);
+  //printf("args: %s\n", args);
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -372,8 +371,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-  lock_acquire (&filesys_lock);
-  printf("%p\n", file);
+  //lock_acquire (&filesys_lock);
+  //printf("%p\n", file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -464,10 +463,10 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
   
-  if (lock_held_by_current_thread(&filesys_lock))
-    lock_release(&filesys_lock);
+  // if (lock_held_by_current_thread(&filesys_lock))
+  //   lock_release(&filesys_lock);
   return success;
 }
 
