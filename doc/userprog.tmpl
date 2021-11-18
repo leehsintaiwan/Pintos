@@ -32,6 +32,30 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> global or static variable, `typedef', or enumeration. 
 >> Identify the purpose of each in roughly 25 words.
 
+struct process {
+  pid_t pid;
+  int exit_status;
+  struct list child_process_list;
+  struct list_elem child_process_elem;
+  struct semaphore *wait_child;
+  bool parent_died;
+};
+
+Contains all of the information of a specific process, including its pid, exit_status, and all of its children processes. 
+wait_child is a semaphore which is up when the parent calls process_wait() to wait for a child.
+
+struct process_info
+{
+  char *command_line;
+  struct process *parent;
+  struct semaphore *wait_load;
+  bool load_success;
+};
+
+This struct is used when a parent creates a child process. 
+command_line contains the arguments passed in, 
+wait_load is a semaphore which is up when the child is loading up.
+
 ---- ALGORITHMS ----
 
 >> A2: (2 marks)
@@ -63,6 +87,32 @@ This means that the state can be used in other threads so strtok_r() is reentran
 >> Copy here the declaration of each new or changed `struct' or `struct' member, 
 >> global or static variable, `typedef', or enumeration. 
 >> Identify the purpose of each in roughly 25 words.
+
+struct fd
+{
+    int id;
+    pid_t process;
+    struct file *file;
+    struct list_elem elem;
+};
+
+A struct containing all of the information of a file descriptor. This includes a pointer to the file, and the process accessing the file.
+
+#define PID_ERROR ((pid_t) -1)
+
+A constant with the value of the exit_status of a failed process.
+
+#define NUM_OF_SYSCALLS 13
+
+A constant containing the number of different syscall functions. This constant is used to define the length of the syscall function pointer array.
+
+static void (*syscall_function[NUM_OF_SYSCALLS])(struct intr_frame *);
+
+The syscall function pointer array, containing all of the syscall functions.
+
+struct lock filesys_lock;
+
+A lock which is used when a thread is accessing the file system to prevent race conditions.
 
 ---- ALGORITHMS ----
 
