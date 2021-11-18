@@ -35,6 +35,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 struct process {
   pid_t pid;
   int exit_status;
+  bool exited;
   struct list child_process_list;
   struct list_elem child_process_elem;
   struct semaphore *wait_child;
@@ -43,6 +44,7 @@ struct process {
 
 Contains all of the information of a specific process, including its pid, exit_status, and all of its children processes. 
 wait_child is a semaphore which is up when the parent calls process_wait() to wait for a child.
+exited is true when the process is exited, and parent_died is true when the process's parent has died.
 
 struct process_info
 {
