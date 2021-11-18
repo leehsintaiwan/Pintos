@@ -47,7 +47,7 @@ process_execute (const char *cmd_line)
 {
   char *cl_copy;
   tid_t tid;
-
+  
   /* Make a copy of CMD_LINE.
      Otherwise there's a race between the caller and load(). */
   cl_copy = palloc_get_page (0);
@@ -92,11 +92,11 @@ process_execute (const char *cmd_line)
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
   if (tid == TID_ERROR)
     palloc_free_page (cl_copy); 
-
+  
   sema_down(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
-
+  printf("process exec\n");
   return tid;
 }
 
@@ -134,14 +134,14 @@ start_process (void *info)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   process_info->load_success = load (process_info->process_name, command_line, &if_.eip, &if_.esp);
-
   init_process(process_info->parent);
 
   /* If load failed, quit. */
   palloc_free_page (process_info->process_name);
+  
   if (!process_info->load_success) 
-    thread_exit ();
-
+    process_exit ();
+  
   sema_up(process_info->wait_load);
 
   /* Start the user process by simulating a return from an
@@ -227,7 +227,7 @@ process_exit (void)
   if (cur->executable)
   {
     file_allow_write(cur->executable);
-    file_close(cur->executable);
+    // file_close(cur->executable);
   }
   lock_release(&filesys_lock);
 
@@ -356,7 +356,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  
+  printf("filename: %s\n", file_name);
+  printf("args: %s\n", args);
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -371,6 +372,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  lock_acquire (&filesys_lock);
+  printf("%p\n", file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -379,7 +382,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       || ehdr.e_machine != 3
       || ehdr.e_version != 1
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
-      || ehdr.e_phnum > 1024) 
+      || ehdr.e_phnum > 1024
+      ) 
     {
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
@@ -461,6 +465,9 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  
+  if (lock_held_by_current_thread(&filesys_lock))
+    lock_release(&filesys_lock);
   return success;
 }
 
