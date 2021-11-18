@@ -78,6 +78,11 @@ This means that the state can be used in other threads so strtok_r() is reentran
 >> In Unix-like systems, the shell does this separation. 
 >> Identify three advantages of the Unix approach.
 
+1. The new executable inherits the privileges of the program that starts it, so security is simpler.
+2. Environment variables no longer needs to be parsed.
+3. It is more flexible as there can be many shell interpreters for different purposes without changing the
+   kernel each time and it allows each user to use a different shell.
+
                  SYSTEM CALLS
                  ============
 
