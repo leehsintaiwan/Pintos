@@ -65,12 +65,13 @@ process_execute (const char *cmd_line)
   char *null_pointer;
   char *prog_name = strtok_r(cl_copy, " ", &null_pointer);
 
+  sema_init(process_info.wait_load, 0);
+  
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
   if (tid == TID_ERROR)
     palloc_free_page (cl_copy); 
 
-  sema_init(process_info.wait_load, 0);
   sema_down(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
