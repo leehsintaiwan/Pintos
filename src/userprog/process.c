@@ -78,6 +78,12 @@ process_execute (const char *cmd_line)
   /* Deny writes to a process's executable. */
   lock_acquire (&filesys_lock);
   thread_current()->executable = filesys_open (prog_name);
+
+  if (thread_current()->executable == NULL) {
+    lock_release (&filesys_lock);
+    return TID_ERROR;
+  }
+
   file_deny_write (thread_current()->executable);
   lock_release (&filesys_lock);
 
