@@ -175,11 +175,13 @@ they terminate, because no parent could call process_wait on them anymore.
 >> The "exec" system call returns -1 if loading the new executable fails, so it 
 >> cannot return before the new executable has completed loading. 
 >> How does your code ensure this? 
+
 We use a semaphore wait_load in our process_info struct which is passed into
 start_process to wait for the child to laod before process_execute returns.
 
 >> How is the load success/failure status passed back to the thread that calls 
 >> "exec"?
+
 We use a process_info struct to keep track of the sucess/failure and the wait_load
 semaphore, which gets passed from process_execute into start_process.
 
@@ -187,20 +189,29 @@ semaphore, which gets passed from process_execute into start_process.
 >> Consider parent process P with child process C. 
 >> How do you ensure proper synchronization and avoid race conditions when: 
 >>   i) P calls wait(C) before C exits? 
+
 P waits for C to exit with a semaphore before retrieving its exit status.
+
 >>  ii) P calls wait(C) after C exits?
+
 In this case C would call sema_up before P calls sema_down on a shared semaphore
 stored on the process struct. The process struct for C will stay in memory before
 a parent calls process_wait on C, or C's parent is marked as died.
+
 >> iii) P terminates, without waiting, before C exits?
+
 When P terminates, it will first notify all child processes that their parent process
 has died, so no one would call process_wait on C, which means C can free its own
 process struct as soon as it exits.
+
 >>  iv) P terminates, without waiting, after C exits?
+
 When P terminates after C, notify_child_process checks if each child process has
 exited, if so then frees that child process as it is no longer required.
+
 >> Additionally, how do you ensure that all resources are freed regardless of 
 >> the above case? 
+
 All processes calls thread_exit when they exit, which calls process_exit and
 then process_exit will free the process struct if it is no longer required.
 
