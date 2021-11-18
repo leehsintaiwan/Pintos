@@ -62,6 +62,8 @@ wait_load is a semaphore which is up when the child is loading up.
 >> How does your argument parsing code avoid overflowing the user's stack page?
 >> What are the efficiency considerations of your approach?
 
+* SIPAN TO-DO *
+
 ---- RATIONALE ----
 
 >> A3: (2 marks)
@@ -142,6 +144,11 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >> B4: (2 marks)
 >> When an error is detected during a system call handler, how do you ensure 
 >> that all temporarily allocated resources (locks, buffers, etc.) are freed?
+
+If an error is detected during a system call handler, the exit_exception() method is called.
+This calls the close_call() method, which closes all files open by the current thread.
+exit_exception() also calls thread_exit(), which in turn calls process_exit(); in this method, 
+all of the process's resources are freed (through free_process()) and the relevant semaphores are upped.
 
 >> B5: (8 marks)
 >> Describe your implementation of the "wait" system call and how it interacts 
