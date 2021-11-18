@@ -287,6 +287,7 @@ static void write (struct intr_frame *f)
   {
     putbuf(buffer, size);
     return_frame(f, size);
+    return;
   }
 
   /* Write to file. */

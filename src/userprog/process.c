@@ -4,7 +4,7 @@
 #include <round.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "lib/string.h"
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -31,7 +31,8 @@ static void free_process(struct process *process);
 
 struct process_info
 {
-  char *command_line;
+  char *process_name;
+  char *process_args;
   struct process *parent;
   struct semaphore *wait_load;
   bool load_success;
@@ -57,13 +58,19 @@ process_execute (const char *cmd_line)
   if (thread_current()->process == NULL) {
     init_process(NULL);
   }
+  
 
   struct process_info process_info;
-  process_info.command_line = cl_copy;
+  // process_info.command_line = cl_copy;
   process_info.parent = thread_current()->process;
-
+  
   char *null_pointer;
   char *prog_name = strtok_r(cl_copy, " ", &null_pointer);
+  process_info.process_name = prog_name;
+  process_info.process_args = null_pointer;
+  // printf("cl_copy:  %s\n", null_pointer);
+  // printf("prog_name:  %s\n", prog_name);
+  // printf("process_info.command_line %s\n", process_info.command_line);
 
   process_info.wait_load = malloc(sizeof(struct semaphore));
   sema_init(process_info.wait_load, 0);
@@ -109,11 +116,8 @@ static void init_process(struct process *parent)
 static void
 start_process (void *info)
 {
-  printf("Start process\n");
   struct process_info *process_info = (struct process_info *) info;
-  char *command_line = process_info->command_line;
-  char *null_pointer;
-  char *prog_name = strtok_r((char *) command_line, " ", &null_pointer);
+  char *command_line = process_info->process_args;
 
   struct intr_frame if_;
 
@@ -122,12 +126,12 @@ start_process (void *info)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  process_info->load_success = load (prog_name, command_line, &if_.eip, &if_.esp);
+  process_info->load_success = load (process_info->process_name, command_line, &if_.eip, &if_.esp);
 
   init_process(process_info->parent);
 
   /* If load failed, quit. */
-  palloc_free_page (prog_name);
+  palloc_free_page (process_info->process_name);
   if (!process_info->load_success) 
     thread_exit ();
 
@@ -335,7 +339,6 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, char *args, void (**eip) (void), void **esp) 
 {
-  printf("Start load\n");
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -348,7 +351,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-  printf("%s\n", file_name);
   /* Open executable file. */
   lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
@@ -431,7 +433,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
         }
     }
 
-  printf("Before setup stack\n");
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
@@ -439,7 +440,6 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
-  printf("Just before push args\n");
   /* Add arguments to stack. */
   if (!push_arguments (esp, file_name, args))
     goto done;
@@ -460,13 +460,27 @@ static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Push arguments onto memory stack. */
 static bool
-push_arguments (void **esp, const char *file_name UNUSED, char *args)
+push_arguments (void **esp, const char *file_name, char *args)
 {
 
   char *arg_addresses[MAX_ARGS_AMOUNT];
 
   int curr_memory = 0;
   int argc = 0;
+
+  /* Push file name onto stack. */
+
+  int file_name_memory = sizeof (char) * (strlen (file_name) + 1);
+  if (curr_memory + file_name_memory > PGSIZE - MAX_REMAINING_SIZE || argc + 1 > MAX_ARGS_AMOUNT)
+  {
+    return false;
+  }
+  *esp -= file_name_memory;
+  arg_addresses[argc] = *esp;
+  argc++;
+
+  memcpy (*esp, file_name, file_name_memory);
+  curr_memory += file_name_memory;
 
   /* Push arguments onto stack. */
 
@@ -483,8 +497,7 @@ push_arguments (void **esp, const char *file_name UNUSED, char *args)
     *esp -= token_memory;
     arg_addresses[argc] = *esp;
     argc++;
-    printf("%s \n", token);
-    printf("testing\n");
+
     memcpy (*esp, token, token_memory);
     curr_memory += token_memory;
 	}
@@ -516,8 +529,7 @@ push_arguments (void **esp, const char *file_name UNUSED, char *args)
 	*esp -= sizeof (void (*) (void));
 	memset (*esp, 0, sizeof (void (*) (void)));
 
-  printf("Push args\n");
-	hex_dump (0, *esp, PHYS_BASE - *esp, 1);
+	// hex_dump (*esp, *esp, PHYS_BASE - *esp, 1);
 
   return true;
 }
@@ -639,7 +651,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
-  printf("Setup stack\n");
   uint8_t *kpage;
   bool success = false;
 
@@ -650,18 +661,13 @@ setup_stack (void **esp)
       if (success)
       {
         *esp = PHYS_BASE;
-        printf("Setup stack success\n");
       }
       else
       {
         palloc_free_page (kpage);
-        printf("Setup stack failure\n");
       }
     }
-  else
-  {
-    printf("kpage is null\n");
-  }
+  
   return success;
 }
 
