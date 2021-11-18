@@ -127,6 +127,8 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >> Describe how your code ensures safe memory access of user provided data from
 >> within the kernel. 
 
+* SIPAN TO-DO *
+
 >> B3: (3 marks)
 >> Suppose that we choose to verify user provided pointers by validating them 
 >> before use (i.e. using the first method described in the spec).
@@ -140,6 +142,8 @@ A lock which is used when a thread is accessing the file system to prevent race 
 >>    (16,384 bytes) of user data.
 >> You must briefly explain the checking tactic you would use and how it applies 
 >> to each case to generate your answers.
+
+* SIPAN TO-DO *
 
 >> B4: (2 marks)
 >> When an error is detected during a system call handler, how do you ensure 
@@ -196,6 +200,12 @@ process struct as soon as it exits.
 >> Why did you choose to implement safe access of user memory from the kernel in 
 >> the way that you did?
 
+* SIPAN TO-DO *
+
 >> B9: (2 marks)
 >> What advantages and disadvantages can you see to your design for file 
 >> descriptors?
+
+Our design for file descriptors is a struct fd which contains all of the information of a file descriptor.
+The advantage of this implementation is that all of the fields can be accessed with ease, by accessing the relevant field of the fd struct.
+Another advantage of this approach is that it is simple and flexible to modification.
