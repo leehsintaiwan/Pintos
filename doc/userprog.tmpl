@@ -32,6 +32,27 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> global or static variable, `typedef', or enumeration. 
 >> Identify the purpose of each in roughly 25 words.
 
+struct process {
+  pid_t pid;
+  int exit_status;
+  struct list child_process_list;
+  struct list_elem child_process_elem;
+  struct semaphore *wait_child;
+  bool parent_died;
+};
+
+Contains all of the information of a specific process, including its pid, exit_status, and all of its children processes.
+
+struct process_info
+{
+  char *command_line;
+  struct process *parent;
+  struct semaphore *wait_load;
+  bool load_success;
+};
+
+(TODO: Explain the above struct)
+
 ---- ALGORITHMS ----
 
 >> A2: (2 marks)
