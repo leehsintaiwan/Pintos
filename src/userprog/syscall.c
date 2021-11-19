@@ -10,7 +10,7 @@
 #include "devices/shutdown.h"
 #include <stdio.h>
 #include "lib/stdio.h"
-#include "threads/palloc.h"
+#include "threads/malloc.h"
 #include "devices/input.h"
 #include "threads/vaddr.h"
 
@@ -183,7 +183,7 @@ static void open (struct intr_frame *f)
   }
 
   /* Allocate memory. */
-  struct fd *file_desc = palloc_get_page (0);
+  struct fd *file_desc = malloc(sizeof(struct fd));
   if (!file_desc)
   {
     lock_release (&filesys_lock);
@@ -373,7 +373,7 @@ static void close (struct intr_frame *f)
   {
     list_remove (&file_desc->elem);
     file_close (file_desc->file);
-    palloc_free_page (file_desc);
+    free (file_desc);
   }
 
   lock_release (&filesys_lock);
@@ -388,18 +388,18 @@ void close_all(void)
   {
 		lock_acquire (&filesys_lock);
   }
+  struct list_elem *e;
   struct thread *t = thread_current();
-  for (struct list_elem *e = list_begin (&t->open_fd); 
-       e != list_end (&t->open_fd);
-	     e = list_next (e))
+  while (!list_empty (&t->open_fd))
 	{
+    e = list_begin(&t->open_fd);
 		int fd = list_entry (e, struct fd, elem)->id;
 		struct fd *file_desc = find_fd (t, fd);
 		if (file_desc)
     {
       list_remove (&file_desc->elem);
       file_close (file_desc->file);
-      palloc_free_page (file_desc);
+      free (file_desc);
     }
 	}
 	lock_release (&filesys_lock);
