@@ -97,11 +97,7 @@ static void init_process(struct process *parent)
     child->parent_died = false;
     list_push_back(&parent->child_process_list, &child->child_process_elem);
   } 
-<<<<<<< HEAD
-  else
-=======
   else 
->>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
   {
     child->parent_died = true;
   }
@@ -197,13 +193,8 @@ static void notify_child_process(struct list *child_list)
   {
     struct process *child = list_entry(e, struct process, child_process_elem);
     child->parent_died = true;
-<<<<<<< HEAD
     if (child->exited) {
       e = list_prev(e);
-=======
-    if (child->exited) 
-    {
->>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
       free_process(child);
     }
   }
@@ -232,21 +223,6 @@ process_exit (void)
      to the kernel-only page directory. */
   pd = cur->pagedir;
   if (pd != NULL) 
-<<<<<<< HEAD
-    {
-      /* Correct ordering here is crucial.  We must set
-         cur->pagedir to NULL before switching page directories,
-         so that a timer interrupt can't switch back to the
-         process page directory.  We must activate the base page
-         directory before destroying the process's page
-         directory, or our active page directory will be one
-         that's been freed (and cleared). */
-      cur->pagedir = NULL;
-      pagedir_activate (NULL);
-      pagedir_destroy (pd);
-    }
-  
-=======
   {
     /* Correct ordering here is crucial.  We must set
         cur->pagedir to NULL before switching page directories,
@@ -260,7 +236,6 @@ process_exit (void)
     pagedir_destroy (pd);
   }
 
->>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
   process->exited = true;
