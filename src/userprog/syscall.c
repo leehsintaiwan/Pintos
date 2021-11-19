@@ -131,6 +131,7 @@ static void create (struct intr_frame *f)
   if (!is_string_valid((char *) file))
   {
     return_frame(f, false);
+    return;
   }
 
   bool success;
@@ -148,6 +149,7 @@ static void remove (struct intr_frame *f)
   if (!is_string_valid((char *) file))
   {
     return_frame(f, false);
+    return;
   }
 
   bool success;
@@ -166,6 +168,7 @@ static void open (struct intr_frame *f)
   if (!is_string_valid((char *) file))
   {
     return_frame(f, -1);
+    return;
   }
   
   lock_acquire (&filesys_lock);
@@ -290,6 +293,7 @@ static void write (struct intr_frame *f)
   if (!is_buffer_valid((void *) buffer, size)) 
   {
     exit_exception ();
+    return;
   }
 
   if (fd == STDIN_FILENO)
