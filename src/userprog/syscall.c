@@ -320,7 +320,6 @@ static void write (struct intr_frame *f)
     exit_exception ();
     return;
   }
-
   int bytes_written = file_write(file_desc->file, buffer, size);
   lock_release(&filesys_lock);
   return_frame(f, bytes_written);

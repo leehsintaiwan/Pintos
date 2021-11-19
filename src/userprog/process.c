@@ -72,16 +72,16 @@ process_execute (const char *cmd_line)
   sema_init(process_info.wait_load, 0);
 
   /* Deny writes to a process's executable. */
-  lock_acquire (&filesys_lock);
-  thread_current()->executable = filesys_open (prog_name);
+  // lock_acquire (&filesys_lock);
+  // thread_current()->executable = filesys_open (prog_name);
 
-  if (thread_current()->executable == NULL) {
-    lock_release (&filesys_lock);
-    return TID_ERROR;
-  }
+  // if (thread_current()->executable == NULL) {
+  //   lock_release (&filesys_lock);
+  //   return TID_ERROR;
+  // }
 
-  file_deny_write (thread_current()->executable);
-  lock_release (&filesys_lock);
+  // file_deny_write (thread_current()->executable);
+  // lock_release (&filesys_lock);
 
   
   /* Create a new thread to execute FILE_NAME. */
@@ -361,12 +361,13 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   /* Open executable file. */
   lock_acquire (&filesys_lock);
   file = filesys_open (file_name);
-  lock_release (&filesys_lock);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  file_deny_write(file);
+  thread_current()->executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -458,7 +459,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   //file_close (file);
-  
+  lock_release (&filesys_lock);
   return success;
 }
 
