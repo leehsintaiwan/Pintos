@@ -9,6 +9,7 @@
 #include "process.h"
 #include "devices/shutdown.h"
 #include <stdio.h>
+#include "lib/stdio.h"
 #include "threads/palloc.h"
 #include "devices/input.h"
 #include "threads/vaddr.h"
@@ -238,6 +239,13 @@ static void read (struct intr_frame *f)
 
   int num_bytes;
 
+  if (fd == STDOUT_FILENO)
+  {
+    exit_exception();
+    return;
+  }
+    
+
   if (fd == STDIN_FILENO) 
   {
     /* Must fill buffer from STDIN. */
@@ -284,6 +292,12 @@ static void write (struct intr_frame *f)
   if (!is_buffer_valid((void *) buffer, size)) 
   {
     exit_exception ();
+  }
+
+  if (fd == STDIN_FILENO)
+  {
+    exit_exception();
+    return;
   }
 
   /* Write to console. */
