@@ -3,7 +3,6 @@
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
-#include <list.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/synch.h"
@@ -31,9 +30,6 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-struct list tt_list; // list of thread_times
-struct list *threadtime_list = &tt_list; // pointer to the thread_time list (avoids having to use & whenever accessing)
-
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -41,8 +37,6 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-
-  list_init(threadtime_list); // initialise the thread_time list
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -90,49 +84,16 @@ timer_elapsed (int64_t then)
   return timer_ticks () - then;
 }
 
-// Returns wake-up time from list_elem
-int64_t time_from_elem(const struct list_elem *e)
-{
-  return list_entry(e, struct thread_time, elem)->time;
-}
-
-// Function comparing the wake-up times of two threads; to be used as a list_less_func
-bool compare_threadtimes(const struct list_elem *e1, const struct list_elem *e2, void* aux UNUSED)
-{
-  int64_t t1 = time_from_elem(e1);
-  int64_t t2 = time_from_elem(e2);
-
-  return t1 < t2;
-}
-
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
+
   ASSERT (intr_get_level () == INTR_ON);
-
-  int64_t wakeup_time = start + ticks; // number of ticks since OS booted when the thread will "wake up"
-
-  struct list_elem elem;
-  struct thread_time ctt; // current thread_time
-  ctt.elem = elem;
-  ctt.thread = thread_current();
-  ctt.time = wakeup_time;
-  sema_init (&(ctt.sema_sleep), 0);
-
-  struct thread_time *curr_threadtime = &ctt; // this pointer variable will be used for functions for ease of use
-
-  // disable interrupts to avoid race-conditions
-  intr_disable();
-
-  // insert thread_time into the ordered thread_time list
-  list_insert_ordered(threadtime_list, &curr_threadtime->elem, compare_threadtimes, NULL);
-
-  // block thread and re-enable interrupts
-  sema_down(&(ctt.sema_sleep));
-  intr_enable();
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -211,27 +172,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-
-  struct list_elem *front; // first list_elem in thread_time list
-  struct thread_time *curr; // the first (or next) thread to be completed, along with its time
-
-  while (!list_empty(threadtime_list)) // a.k.a while there are threads to-be-completed
-  {
-    front = list_front(threadtime_list);
-    curr = list_entry(front, struct thread_time, elem);
-
-    if (curr->time <= timer_ticks()) // wake-up time has occurred
-    {
-      list_remove(front); // remove the thread_time from the list
-
-      sema_up(&(curr->sema_sleep));
-    }
-    else
-    {
-      break; // a while loop, as opposed to an if statement, is needed in case two or more threads finish simultaneously
-             // hence why this break is also needed
-    }
-  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

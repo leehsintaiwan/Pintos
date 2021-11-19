@@ -16,7 +16,7 @@ enum thread_status
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
-typedef uint32_t tid_t;
+typedef int tid_t;
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
 /* Thread priorities. */
@@ -88,16 +88,10 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int nice;                           /* Nice value (mlfqs) */
-    int recent_cpu;                     /* recent_cpu value (mlfqs) */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-
-    struct list donators;               /* List of donator threads */
-    struct list_elem donator_elem;      /* List element for donators list */
-    struct lock *wait_lock;             /* The lock causing the thread to wait */
 
 
 #ifdef USERPROG
@@ -111,6 +105,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
@@ -145,7 +140,6 @@ void thread_yield (void);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
-int get_priority_of_thread(struct thread *);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
@@ -153,15 +147,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-void thread_update_priority(struct thread *);
-void thread_update_recent_cpu (struct thread *);
-void thread_update_priority (struct thread *);
-void thread_update_load_avg (void);
-int get_highest_priority (void);
-
-/* Compares priorities of threads. */
-bool compare_thread_priority (const struct list_elem *, 
-                              const struct list_elem *, void *aux);
-
 
 #endif /* threads/thread.h */
