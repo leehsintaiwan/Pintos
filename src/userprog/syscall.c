@@ -369,7 +369,7 @@ static void close (struct intr_frame *f)
 
   struct fd *file_desc = find_fd (thread_current(), fd);
 
-  if (file_desc && thread_current()->tid == file_desc->process)
+  if (file_desc && thread_current()->tid == (tid_t) file_desc->process)
   {
     list_remove (&file_desc->elem);
     file_close (file_desc->file);
