@@ -71,19 +71,6 @@ process_execute (const char *cmd_line)
   process_info.wait_load = malloc(sizeof(struct semaphore));
   sema_init(process_info.wait_load, 0);
 
-  /* Deny writes to a process's executable. */
-  // lock_acquire (&filesys_lock);
-  // thread_current()->executable = filesys_open (prog_name);
-
-  // if (thread_current()->executable == NULL) {
-  //   lock_release (&filesys_lock);
-  //   return TID_ERROR;
-  // }
-
-  // file_deny_write (thread_current()->executable);
-  // lock_release (&filesys_lock);
-
-  
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
   if (tid == TID_ERROR)
@@ -366,6 +353,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+    
+  /* Deny writes to a process's executable. */
   file_deny_write(file);
   thread_current()->executable = file;
 
