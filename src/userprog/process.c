@@ -55,11 +55,9 @@ process_execute (const char *cmd_line)
     return TID_ERROR;
   strlcpy (cl_copy, cmd_line, PGSIZE);
 
-  if (thread_current()->process == NULL) {
+  if (thread_current()->process == NULL) 
     init_process(NULL);
-  }
   
-
   struct process_info process_info;
   // process_info.command_line = cl_copy;
   process_info.parent = thread_current()->process;
@@ -96,7 +94,9 @@ static void init_process(struct process *parent)
   if (parent != NULL) {
     child->parent_died = false;
     list_push_back(&parent->child_process_list, &child->child_process_elem);
-  } else {
+  } 
+  else
+  {
     child->parent_died = true;
   }
   thread_current()->process = child;
@@ -188,6 +188,7 @@ static void notify_child_process(struct list *child_list)
     struct process *child = list_entry(e, struct process, child_process_elem);
     child->parent_died = true;
     if (child->exited) {
+      e = list_prev(e);
       free_process(child);
     }
   }
@@ -199,7 +200,6 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
 
   /* Allow write to executable once no longer running. */
   if (!lock_held_by_current_thread(&filesys_lock))
@@ -229,7 +229,7 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-
+  
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
   process->exited = true;
@@ -353,7 +353,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
-    
+
   /* Deny writes to a process's executable. */
   file_deny_write(file);
   thread_current()->executable = file;
@@ -442,12 +442,10 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   if (!push_arguments (esp, file_name, args))
     goto done;
 
-
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
-  //file_close (file);
   lock_release (&filesys_lock);
   return success;
 }
