@@ -264,16 +264,14 @@ static void read (struct intr_frame *f)
     lock_acquire (&filesys_lock);
     num_bytes = -1;
     struct fd *file_desc = find_fd (thread_current(), fd);
-    if (file_desc) 
-    {
-      num_bytes = file_read (file_desc->file, (void *) buffer, size);
-    }
-    else
+    if (!file_desc) 
     {
       lock_release (&filesys_lock);
       exit_exception ();
       return;
     }
+    
+    num_bytes = file_read (file_desc->file, (void *) buffer, size);
 
     lock_release (&filesys_lock);
   }
@@ -316,6 +314,7 @@ static void write (struct intr_frame *f)
   {
     lock_release(&filesys_lock);
     exit_exception ();
+    return;
   }
 
   int bytes_written = file_write(file_desc->file, buffer, size);
@@ -331,8 +330,7 @@ static void seek (struct intr_frame *f UNUSED)
   unsigned position = get_num (f->esp + 8);
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
-
-  if (file_desc && position > 0 && file_desc->file)
+  if (file_desc)
   {
     file_seek (file_desc->file, position);
   }
@@ -349,7 +347,7 @@ static void tell (struct intr_frame *f)
   struct fd *file_desc = find_fd (thread_current(), fd);
   unsigned position = -1;
 
-  if (file_desc && file_desc->file)
+  if (file_desc)
   {
     position = file_tell (file_desc->file);
   }
