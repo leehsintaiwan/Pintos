@@ -96,13 +96,11 @@ static void init_process(struct process *parent)
 
   if (parent != NULL) 
   {
-    child->is_root = false;
     child->parent_died = false;
     list_push_back(&parent->child_process_list, &child->child_process_elem);
   } 
   else 
   {
-    child->is_root = true;
     child->parent_died = true;
   }
 
@@ -159,8 +157,7 @@ static struct process *get_child_process(struct list *child_list, pid_t child_pi
 
 static void free_process(struct process *process)
 {
-  if (!process->is_root)
-    list_remove(&process->child_process_elem);
+  list_remove(&process->child_process_elem);
   free(process->wait_child);
   free(process);
 }
@@ -211,6 +208,8 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  
+  close_all();
 
   /* Allow write to executable once no longer running. */
   if (!lock_held_by_current_thread(&filesys_lock))
@@ -224,6 +223,15 @@ process_exit (void)
   }
   lock_release(&filesys_lock);
   
+  struct process *process = thread_current()->process;
+  notify_child_process(&process->child_process_list);
+  process->exited = true;
+  sema_up(process->wait_child);
+  if (process && process->parent_died)
+  {
+    free_process(process);
+  }
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -239,15 +247,6 @@ process_exit (void)
     cur->pagedir = NULL;
     pagedir_activate (NULL);
     pagedir_destroy (pd);
-  }
-
-  struct process *process = thread_current()->process;
-  notify_child_process(&process->child_process_list);
-  process->exited = true;
-  sema_up(process->wait_child);
-  if (process && process->parent_died)
-  {
-    free_process(process);
   }
 }
 

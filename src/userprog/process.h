@@ -26,7 +26,6 @@ struct process {
   struct list_elem child_process_elem;  /* list elem for assigning to parent process */
   struct semaphore *wait_child;         /* Semaphore for waiting for this process to exit */
   bool parent_died;                     /* Indicates if parent had exited */
-  bool is_root;
 };
 
 #endif /* userprog/process.h */
