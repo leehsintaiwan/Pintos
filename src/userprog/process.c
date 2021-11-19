@@ -91,14 +91,21 @@ static void init_process(struct process *parent)
   child->exited = false;
   list_init(&child->child_process_list);
   sema_init(child->wait_child, 0);
-  if (parent != NULL) {
+
+  if (parent != NULL) 
+  {
     child->parent_died = false;
     list_push_back(&parent->child_process_list, &child->child_process_elem);
   } 
+<<<<<<< HEAD
   else
+=======
+  else 
+>>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
   {
     child->parent_died = true;
   }
+
   thread_current()->process = child;
 }
 
@@ -171,9 +178,12 @@ process_wait (tid_t child_tid)
 {
   struct process *parent = thread_current()->process;
   struct process *child = get_child_process(&parent->child_process_list, child_tid);
-  if (!child) {
+
+  if (!child) 
+  {
     return -1;
   }
+
   sema_down(child->wait_child);
   int status = child->exit_status;
   free_process(child);
@@ -187,8 +197,13 @@ static void notify_child_process(struct list *child_list)
   {
     struct process *child = list_entry(e, struct process, child_process_elem);
     child->parent_died = true;
+<<<<<<< HEAD
     if (child->exited) {
       e = list_prev(e);
+=======
+    if (child->exited) 
+    {
+>>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
       free_process(child);
     }
   }
@@ -217,6 +232,7 @@ process_exit (void)
      to the kernel-only page directory. */
   pd = cur->pagedir;
   if (pd != NULL) 
+<<<<<<< HEAD
     {
       /* Correct ordering here is crucial.  We must set
          cur->pagedir to NULL before switching page directories,
@@ -230,6 +246,21 @@ process_exit (void)
       pagedir_destroy (pd);
     }
   
+=======
+  {
+    /* Correct ordering here is crucial.  We must set
+        cur->pagedir to NULL before switching page directories,
+        so that a timer interrupt can't switch back to the
+        process page directory.  We must activate the base page
+        directory before destroying the process's page
+        directory, or our active page directory will be one
+        that's been freed (and cleared). */
+    cur->pagedir = NULL;
+    pagedir_activate (NULL);
+    pagedir_destroy (pd);
+  }
+
+>>>>>>> 6e40a311994daaf8966b78f27e0ac6998ad775f3
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
   process->exited = true;
