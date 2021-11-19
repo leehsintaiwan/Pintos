@@ -71,14 +71,16 @@ process_execute (const char *cmd_line)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (prog_name, PRI_DEFAULT, start_process, &process_info);
-  if (tid == TID_ERROR)
+  if (tid == TID_ERROR) {
     palloc_free_page (cl_copy); 
+    free(process_info.wait_load);
+    return tid;
+  }
   
   sema_down(process_info.wait_load);
   free(process_info.wait_load);
   if (!process_info.load_success)
     return TID_ERROR;
-
   return tid;
 }
 
@@ -94,11 +96,13 @@ static void init_process(struct process *parent)
 
   if (parent != NULL) 
   {
+    child->is_root = false;
     child->parent_died = false;
     list_push_back(&parent->child_process_list, &child->child_process_elem);
   } 
   else 
   {
+    child->is_root = true;
     child->parent_died = true;
   }
 
@@ -155,7 +159,8 @@ static struct process *get_child_process(struct list *child_list, pid_t child_pi
 
 static void free_process(struct process *process)
 {
-  list_remove(&process->child_process_elem);
+  if (!process->is_root)
+    list_remove(&process->child_process_elem);
   free(process->wait_child);
   free(process);
 }
@@ -218,7 +223,7 @@ process_exit (void)
     file_close(cur->executable);
   }
   lock_release(&filesys_lock);
-
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -347,7 +352,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
-  if (t->pagedir == NULL) 
+  if (t->pagedir == NULL)
     goto done;
   process_activate ();
 
@@ -452,7 +457,8 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  lock_release (&filesys_lock);
+  if (lock_held_by_current_thread(&filesys_lock))
+    lock_release (&filesys_lock);
   return success;
 }
 
