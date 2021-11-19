@@ -327,7 +327,7 @@ static void write (struct intr_frame *f)
 
 /* Changes the next byte to be read or written in open file fd 
    to position, expressed in bytes from the beginning of the file. */
-static void seek (struct intr_frame *f UNUSED)
+static void seek (struct intr_frame *f)
 {
   int fd = get_num (f->esp + 4);
   unsigned position = get_num (f->esp + 8);
