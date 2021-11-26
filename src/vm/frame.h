@@ -8,6 +8,7 @@ struct frame_table
 
 struct frame
 {
+  unsigned index;
   void *page;
   struct hash_elem hash_elem;
 };
