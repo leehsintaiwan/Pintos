@@ -9,7 +9,8 @@ struct frame_table
 struct frame
 {
   unsigned index;
-  void *page;
+  void *page_address;
+  void *frame_address;
   struct hash_elem hash_elem;
 };
 
