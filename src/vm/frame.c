@@ -42,3 +42,12 @@ struct frame *get_new_frame(void *page_address)
 
   return &new_frame;
 }
+
+struct frame *lookup_frame(void *frame_address) {
+  struct frame search_frame;
+  search_frame->frame_address = frame_address;
+
+  struct hash_elem *frame_elem = hash_find(&frames->table, &search_frame->hash_elem);
+  
+  return hash_entry(frame_elem, struct frame, hash_elem);
+}
