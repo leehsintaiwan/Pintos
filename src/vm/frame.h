@@ -1,5 +1,8 @@
-#ifndef FRAME_H
-#define FRAME_H
+#ifndef VM_FRAME_H
+#define VM_FRAME_H
+
+#include <hash.h>
+
 
 struct frame_table
 {
