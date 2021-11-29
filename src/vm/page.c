@@ -3,9 +3,9 @@
 #include "userprog/syscall.h"
 
 
-static uint32_t supp_hash_func(const struct hash_elem *e, void *aux UNUSED);
-static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED);
-static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED);
+static hash_hash_func supp_hash_func;
+static hash_less_func supp_hash_less;
+static hash_action_func supp_destroy_func;
 
 /* Create supplemental page table */
 struct supp_page_table *init_supp_page_table (void)
@@ -58,7 +58,7 @@ bool add_frame_supp_pt (struct supp_page_table *supp_page_table, void *addr)
 
 /* Helper functions for the supplemental page table hash map. */
 
-static uint32_t supp_hash_func(const struct hash_elem *e, void *aux UNUSED)
+static unsigned supp_hash_func(const struct hash_elem *e, void *aux UNUSED)
 {
   struct page *page = hash_entry (e, struct page, elem);
   return hash_int((int) page->address);
@@ -74,5 +74,8 @@ static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b,
 static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
   struct supp_pt_entry *entry = hash_entry (e, struct page, elem);
+
+  // Check the page_from and free based on the location
+  
   free (entry);
 }
