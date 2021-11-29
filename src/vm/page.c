@@ -61,7 +61,7 @@ bool add_frame_supp_pt (struct supp_page_table *supp_page_table, void *addr)
 static unsigned supp_hash_func(const struct hash_elem *e, void *aux UNUSED)
 {
   struct page *page = hash_entry (e, struct page, elem);
-  return hash_int((int) page->address);
+  return hash_bytes(&page->address, sizeof(page->address));
 }
 
 static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)
