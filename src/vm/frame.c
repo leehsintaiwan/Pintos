@@ -10,12 +10,14 @@ static struct frame *lookup_frame(void *frame_address)
 
 static struct frame_table frames;
 
+// Initialise frame table
 void init_frames()
 {
   lock.init(&frames.lock);
   hash_init(&frames.table, frame_hash_func, frame_hash_less, NULL);
 }
 
+// Get new frame by calling palloc, and add frame to frame table
 void *get_new_frame(void *page_address)
 {
   struct frame *new_frame = malloc(sizeof(struct frame));
@@ -37,7 +39,7 @@ void *get_new_frame(void *page_address)
   return frame_address;
 }
 
-/* Destroy frame table. */
+/* Destroy a specified frame in frame table. */
 void destroy_frame (void *frame_address)
 {
   struct frame *frame = lookup_frame(frame_address);
