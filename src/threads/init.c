@@ -31,6 +31,10 @@
 #else
 #include "tests/threads/tests.h"
 #endif
+#ifdef VM
+#include "vm/frame.h"
+#include "vm/swap.h"
+#endif
 #ifdef FILESYS
 #include "devices/block.h"
 #include "devices/ide.h"
@@ -98,6 +102,11 @@ main (void)
   palloc_init (user_page_limit);
   malloc_init ();
   paging_init ();
+
+  /* Initialize virtual memory frames. */
+#ifdef VM
+  init_frames ();
+#endif
 
   /* Segmentation. */
 #ifdef USERPROG
