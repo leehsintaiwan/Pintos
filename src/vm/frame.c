@@ -18,12 +18,12 @@ void init_frames()
 }
 
 // Get new frame by calling palloc, and add frame to frame table
-void *get_new_frame(void *page_address)
+void *get_new_frame(enum palloc_flags flag, void *page_address)
 {
   struct frame *new_frame = malloc(sizeof(struct frame));
   new_frame->page_address = page_address;
 
-  void *frame_address = palloc_get_page(PAL_USER);
+  void *frame_address = palloc_get_page(PAL_USER | flag);
 
   if (frame_address == NULL) {
     PANIC("no more free pages");
