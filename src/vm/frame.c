@@ -12,17 +12,9 @@ static struct frame_table frames;
 
 void init_frames()
 {
+  lock.init(&frames.lock);
   hash_init(&frames.table, frame_hash_func, frame_hash_less, NULL);
 }
-
-/* Destroy frame table. */
-void destroy_frame (void *frame_address)
-{
-  struct frame *frame = lookup_frame(frame_address);
-  hash_destroy (&frames.table, &frame->hash_elem);
-  palloc_free_page(frame_address);
-}
-
 
 void *get_new_frame(void *page_address)
 {
@@ -38,22 +30,36 @@ void *get_new_frame(void *page_address)
 
   new_frame->frame_address = frame_address;
 
+  lock_acquire(&frames.lock);
   hash_insert(&frames.table, &new_frame->hash_elem);
+  lock_release(&frames.lock);
 
   return frame_address;
 }
+
+/* Destroy frame table. */
+void destroy_frame (void *frame_address)
+{
+  struct frame *frame = lookup_frame(frame_address);
+  lock_acquire(&frames.lock);
+  hash_destroy (&frames.table, &frame->hash_elem);
+  lock_release(&frames.lock);
+  palloc_free_page(frame_address);
+}
+
+
+/* Helper functions for frame table. */
 
 static struct frame *lookup_frame(void *frame_address) {
   struct frame search_frame;
   search_frame.frame_address = frame_address;
 
+  lock_acquire(&frames.lock);
   struct hash_elem *frame_elem = hash_find(&frames.table, &search_frame.hash_elem);
-  
+  lock_release(&frames.lock);
+
   return hash_entry(frame_elem, struct frame, hash_elem);
 }
-
-
-/* Helper functions for frame table. */
 
 static unsigned frame_hash_func(const struct hash_elem *elem, void *aux UNUSED)
 {

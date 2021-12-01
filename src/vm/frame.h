@@ -6,6 +6,7 @@
 
 struct frame_table
 {
+  struct lock lock;
   struct hash table;
 };
 
