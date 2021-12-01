@@ -1,4 +1,6 @@
+#include "lib/debug.h"
 #include "frame.h"
+#include "palloc.h"
 
 
 static hash_hash_func frame_hash_func;
@@ -29,6 +31,7 @@ struct frame *get_new_frame(void *page_address)
 
   if (frame_address == NULL) {
     PANIC("no more free pages");
+    return NULL;
   }
 
   new_frame->frame_address = frame_address;
