@@ -6,6 +6,7 @@
 static hash_hash_func frame_hash_func;
 static hash_less_func frame_hash_less;
 static hash_action_func frame_destroy_func;
+static struct frame *lookup_frame(void *frame_address)
 
 static struct frame_table frames;
 
@@ -15,14 +16,15 @@ void init_frames()
 }
 
 /* Destroy frame table. */
-void destroy_frame_table (struct frames *supp_page_table)
+void destroy_frame (void *frame_address)
 {
-  // hash_destroy (&frames.table, frame_destroy_func);
-  free (frames);
+  struct frame *frame = lookup_frame(frame_address);
+  hash_destroy (&frames.table, &frame->hash_elem);
+  palloc_free_page(frame_address);
 }
 
 
-struct frame *get_new_frame(void *page_address)
+void *get_new_frame(void *page_address)
 {
   struct frame *new_frame = malloc(sizeof(struct frame));
   new_frame->page_address = page_address;
@@ -38,10 +40,10 @@ struct frame *get_new_frame(void *page_address)
 
   hash_insert(&frames.table, &new_frame->hash_elem);
 
-  return &new_frame;
+  return frame_address;
 }
 
-struct frame *lookup_frame(void *frame_address) {
+static struct frame *lookup_frame(void *frame_address) {
   struct frame search_frame;
   search_frame.frame_address = frame_address;
 
