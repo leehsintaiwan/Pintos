@@ -5,6 +5,10 @@
 #include <list.h>
 #include <stdint.h>
 
+#ifdef VM
+#include "vm/page.h"
+#endif
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -106,6 +110,9 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 #endif
 
+#ifdef VM
+    struct supp_page_table *supp_page_table;   /* Supplemental page table. */
+#endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
