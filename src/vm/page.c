@@ -1,6 +1,8 @@
 #include "page.h"
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
+#include "vaddr.h"
+#include "lib/debug.h"
 
 
 static hash_hash_func supp_hash_func;
@@ -100,6 +102,95 @@ bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
   file_info->file_writeable = writeable;
 
   return add_supp_pt (supp_page_table, addr, NULL, FILE, file_info);
+}
+
+/* Finds the page in the supp_page_table.
+   If found it returns the page address, else returns NULL. */
+struct page *find_page (struct supp_page_table *supp_page_table, void *page)
+{
+  // Create a page with the same hash key
+  struct page temp_page;
+  temp_page.address = page;
+
+  struct hash_elem *elem = hash_find (&supp_page_table->page_table, &temp_page.elem);
+  if (elem) 
+  {
+    return hash_entry (elem, struct page, elem);
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
+/* Load page back on frame (into the memory). */
+bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address)
+{
+  /* see also userprog/exception.c */
+
+  struct page *page = find_page(supp_page_table, address);
+  if(!page) {
+    return false;
+  }
+
+  if(page->page_from == FRAME) {
+    // Already loaded
+    return true;
+  }
+
+  // Get new frame for page
+  void *frame_page = get_new_frame(address);
+  if(!frame_page) {
+    return false;
+  }
+
+  // Fetch the data into the frame
+  bool writeable = true;
+  switch (page->page_from)
+  {
+  case ZERO:
+    memset (frame_page, 0, PGSIZE);
+    break;
+
+  case FRAME:
+    /* nothing to do */
+    break;
+
+  case SWAP:
+    // Swap in: load the data from the swap disc
+
+    // TODO: Implement swap in
+    break;
+
+  case FILE:
+    // if( vm_load_page_from_filesys(spte, frame_page) == false) {
+    //   vm_frame_free(frame_page);
+    //   return false;
+    // }
+
+    // writeable = page->writeable;
+    break;
+
+  default:
+    PANIC ("Page type does not exist.");
+  }
+
+  // 4. Point the page table entry for the faulting virtual address to the physical page.
+  if(!pagedir_set_page (pagedir, upage, frame_page, writable)) {
+    vm_frame_free(frame_page);
+    return false;
+  }
+
+  // Make SURE to mapped kpage is stored in the SPTE.
+  spte->kpage = frame_page;
+  spte->status = ON_FRAME;
+
+  pagedir_set_dirty (pagedir, frame_page, false);
+
+  // unpin frame
+  vm_frame_unpin(frame_page);
+
+  return true;
 }
 
 /* Helper functions for the supplemental page table hash map. */
