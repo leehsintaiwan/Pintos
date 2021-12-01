@@ -20,6 +20,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);
@@ -625,7 +627,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (kpage == NULL){
         
         /* Get a new page of memory. */
-        kpage = palloc_get_page (PAL_USER);
+        kpage = get_new_frame (PAL_USER, upage);
         if (kpage == NULL){
           return false;
         }
@@ -633,7 +635,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
         /* Add the page to the process's address space. */
         if (!install_page (upage, kpage, writable)) 
         {
-          palloc_free_page (kpage);
+          destroy_frame (kpage);
           return false; 
         }        
       }
@@ -641,7 +643,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Load data into the page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-          palloc_free_page (kpage);
+          destroy_frame (kpage);
           return false; 
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
@@ -662,17 +664,18 @@ setup_stack (void **esp)
   uint8_t *kpage;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  kpage = get_new_frame (PAL_USER | PAL_ZERO, upage);
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      success = install_page (upage, kpage, true);
       if (success)
       {
         *esp = PHYS_BASE;
       }
       else
       {
-        palloc_free_page (kpage);
+        destroy_frame (kpage);
       }
     }
   
