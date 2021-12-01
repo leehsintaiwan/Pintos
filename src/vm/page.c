@@ -21,7 +21,7 @@ struct supp_page_table *init_supp_page_table (void)
     exit_exception ();
   }
   
-  // Initialise the supplemtnale page table.
+  // Initialise the supplemental page table.
   hash_init (&supp_page_table->page_table, supp_hash_func, supp_hash_less, NULL);
   
   return supp_page_table;
