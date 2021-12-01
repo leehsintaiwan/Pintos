@@ -1,27 +1,27 @@
+#include "filesys/directory.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "lib/string.h"
+#include "threads/flags.h"
+#include "threads/init.h"
+#include "threads/interrupt.h"
+#include "threads/malloc.h"
+#include "threads/palloc.h"
+#include "threads/synch.h"
+#include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "userprog/gdt.h"
+#include "userprog/pagedir.h"
 #include "userprog/process.h"
+#include "userprog/syscall.h"
+#include "userprog/tss.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "lib/string.h"
-#include "userprog/gdt.h"
-#include "userprog/pagedir.h"
-#include "userprog/tss.h"
-#include "userprog/syscall.h"
-#include "filesys/directory.h"
-#include "filesys/file.h"
-#include "filesys/filesys.h"
-#include "threads/flags.h"
-#include "threads/init.h"
-#include "threads/interrupt.h"
-#include "threads/palloc.h"
-#include "threads/malloc.h"
-#include "threads/thread.h"
-#include "threads/vaddr.h"
-#include "threads/synch.h"
-#include "vm/frame.h"
-#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *file_name, char *args, void (**eip) (void), void **esp);

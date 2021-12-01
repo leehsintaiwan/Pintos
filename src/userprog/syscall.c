@@ -1,18 +1,18 @@
-#include "userprog/syscall.h"
-#include <syscall-nr.h>
-#include "filesys/filesys.h"
-#include "filesys/file.h"
-#include "threads/interrupt.h"
-#include "threads/thread.h"
-#include <inttypes.h>
-#include "lib/stdint.h"
-#include "process.h"
-#include "devices/shutdown.h"
-#include <stdio.h>
-#include "lib/stdio.h"
-#include "threads/malloc.h"
 #include "devices/input.h"
+#include "devices/shutdown.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
+#include "lib/stdint.h"
+#include "lib/stdio.h"
+#include "process.h"
+#include "threads/interrupt.h"
+#include "threads/malloc.h"
+#include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/syscall.h"
+#include <inttypes.h>
+#include <stdio.h>
+#include <syscall-nr.h>
 
 #define NUM_OF_SYSCALLS 13
 
@@ -90,7 +90,7 @@ static void halt (struct intr_frame *f UNUSED)
 static void exit (struct intr_frame *f) 
 {
   int status = get_num (f->esp + 4);
-  // close_all();
+  close_all();
   struct thread *current = thread_current();
   current->process->exit_status = status;
   printf ("%s: exit(%d)\n", current->name, status);
@@ -100,7 +100,7 @@ static void exit (struct intr_frame *f)
 // Terminates the current user program due to exception
 void exit_exception (void)
 {
-  // close_all();
+  close_all();
   struct thread *current = thread_current();
   current->process->exit_status = -1;
   printf ("%s: exit(%d)\n", current->name, -1);

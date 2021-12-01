@@ -6,6 +6,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "userprog/process.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -148,7 +150,6 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   thread_current()->process->exit_status = -1;
-  close_all();
 
   /* A page fault in the kernel merely sets the interupt 
      frame eax to 0xffffffff and copies the old value into eip. */
@@ -156,8 +157,9 @@ page_fault (struct intr_frame *f)
   {
     f->eip = (void *) f->eax;
     f->eax = 0xffffffff;
+    return;
   }
-   exit_exception();
+   // exit_exception();
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to

@@ -1,8 +1,8 @@
+#include "lib/debug.h"
 #include "page.h"
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
 #include "vaddr.h"
-#include "lib/debug.h"
 
 
 static hash_hash_func supp_hash_func;
@@ -133,13 +133,13 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     return false;
   }
 
-  if(page->page_from == FRAME) {
-    // Already loaded
+  // Already loaded
+  if(page->page_from == FRAME) {  
     return true;
   }
 
   // Get new frame for page
-  void *frame_page = get_new_frame(address);
+  void *frame_page = get_new_frame(PAL_USER, address);
   if(!frame_page) {
     return false;
   }

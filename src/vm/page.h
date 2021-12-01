@@ -52,10 +52,10 @@ struct file_struct {
 struct supp_page_table *init_supp_page_table (void);
 void destroy_supp_pt (struct supp_page_table *supp_page_table);
 bool add_frame_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr);
-bool add_zero_supp_pt (struct supp_page_table *supp_page_table, void *addr)
-bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr, uint32_t swap_index)
+bool add_zero_supp_pt (struct supp_page_table *supp_page_table, void *addr);
+bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr, uint32_t swap_index);
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
-    struct file *file, int32_t start_byte, uint32_t read_bytes, bool writeable)
+    struct file *file, int32_t start_byte, uint32_t read_bytes, bool writeable);
 
 
 
