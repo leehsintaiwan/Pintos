@@ -1,6 +1,8 @@
 #ifndef VM_PAGE_H
 #define VM_PAGE_H
 
+#include <hash.h>
+#include "lib/kernel/hash.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

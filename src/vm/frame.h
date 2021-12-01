@@ -2,6 +2,7 @@
 #define VM_FRAME_H
 
 #include <hash.h>
+#include "lib/kernel/hash.h"
 #include "threads/palloc.h"
 
 

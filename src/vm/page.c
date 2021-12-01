@@ -1,8 +1,9 @@
 #include "lib/debug.h"
-#include "page.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
-#include "vaddr.h"
+#include "threads/vaddr.h"
 
 
 static hash_hash_func supp_hash_func;

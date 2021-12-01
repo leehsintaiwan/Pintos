@@ -1,6 +1,6 @@
-#include "frame.h"
+#include "vm/frame.h"
 #include "lib/debug.h"
-#include "palloc.h"
+#include "threads/palloc.h"
 
 static hash_hash_func frame_hash_func;
 static hash_less_func frame_hash_less;
