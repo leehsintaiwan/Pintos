@@ -35,14 +35,17 @@ struct page {
     // When page loc is SWAP
     uint32_t swap_index;
 
-
     // When page loc is FILE
-    struct file *file; /* Executable file. */
-    int32_t file_start_byte; /*  Offset in the file to start read. */
-    size_t file_read_bytes; /* Number of bytes to read. */
-    bool file_writeable;  /* Is file writable (based on segment being read). */
+    struct file_struct *file_info;
 
     struct hash_elem elem; 
+};
+
+struct file_struct {
+  struct file *file; /* Executable file. */
+  int32_t file_start_byte; /*  Offset in the file to start read. */
+  size_t file_read_bytes; /* Number of bytes to read. */
+  bool file_writeable;  /* Is file writable (based on segment being read). */
 };
 
 
