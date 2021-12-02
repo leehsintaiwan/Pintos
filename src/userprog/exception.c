@@ -149,26 +149,39 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  thread_current()->process->exit_status = -1;
 
+#ifdef VM
+   void *fault_page = pg_round_down (fault_addr); 
+   struct thread *t = thread_curent ();
+
+
+   // Look up upage in the process' supplementary page table.
+   struct supp_page_table *supp_page_table = &t->supp_page_table;
+   struct page *page = find_page(supp_page_table, fault_page);
+   if (!page) {
+      return NULL;
+   }
+#endif
+
+
+  thread_current()->process->exit_status = -1;
   /* A page fault in the kernel merely sets the interupt 
      frame eax to 0xffffffff and copies the old value into eip. */
   if (!user) 
   {
     f->eip = (void *) f->eax;
     f->eax = 0xffffffff;
-    return;
   }
-   // exit_exception();
+   exit_exception();
 
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
+//   /* To implement virtual memory, delete the rest of the function
+//      body, and replace it with code that brings in the page to
+//      which fault_addr refers. */
+//   printf ("Page fault at %p: %s error %s page in %s context.\n",
+//           fault_addr,
+//           not_present ? "not present" : "rights violation",
+//           write ? "writing" : "reading",
+//           user ? "user" : "kernel");
+//   kill (f);
 }
 

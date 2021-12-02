@@ -9,6 +9,8 @@
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
 static hash_action_func supp_destroy_func;
+static bool load_page_of_file(struct page *page, void *faddress);
+
 
 /* Create supplemental page table */
 struct supp_page_table *init_supp_page_table (void)
@@ -153,10 +155,6 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     memset (frame_page, 0, PGSIZE);
     break;
 
-  case FRAME:
-    /* nothing to do */
-    break;
-
   case SWAP:
     // Swap in: load the data from the swap disc
 
@@ -170,6 +168,10 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     // }
 
     // writeable = page->writeable;
+    break;
+
+  case FRAME:
+    PANIC ("This type should not be reached.");
     break;
 
   default:
@@ -194,6 +196,22 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
   return true;
 }
 
+
+static bool load_page_of_file(struct page *page, void *faddress)
+{
+  file_seek (page->file_info->file, page->file_info->file_start_byte);
+
+  int bytes_read = file_read (page->file_info->file, faddress, page->file_info->file_read_bytes);
+  if (bytes_read != (int) page->file_info->file_read_bytes)
+  {
+    return false;
+  }
+  // The rest of the bytes are set to 0.
+  memset (faddress + bytes_read, 0, page->file_info->zero_bytes);
+  return true;
+}
+
+
 /* Helper functions for the supplemental page table hash map. */
 
 static unsigned supp_hash_func(const struct hash_elem *e, void *aux UNUSED)
@@ -211,9 +229,12 @@ static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b,
 
 static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
 {
-  struct supp_pt_entry *entry = hash_entry (e, struct page, elem);
+  struct page *page = hash_entry (e, struct page, elem);
 
   // Check the page_from and free based on the location
-  
-  free (entry);
+  if (page->page_from == FRAME)
+  {
+    destroy_frame (page->faddress);
+  }
+  free (page);
 }
