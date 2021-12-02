@@ -19,7 +19,7 @@ struct frame
   struct hash_elem hash_elem;
 };
 
-void init_frames();
+void init_frames(void);
 void *get_new_frame(enum palloc_flags flag, void *page_address);
 void destroy_frame (void *frame_address);
 
