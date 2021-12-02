@@ -109,7 +109,7 @@ bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
   file_info->file_read_bytes = read_bytes;
   file_info->file_zero_bytes = zero_bytes;
   file_info->file_writeable = writeable;
-  return add_supp_pt (supp_page_table, addr, NULL, FILE, &file_info);
+  return add_supp_pt (supp_page_table, addr, NULL, FILE, file_info);
 }
 
 /* Finds the page in the supp_page_table.
