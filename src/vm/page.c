@@ -7,6 +7,7 @@
 #include <string.h>
 #include "userprog/pagedir.h"
 #include "filesys/file.h"
+#include <stdio.h>
 
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
@@ -28,7 +29,7 @@ struct supp_page_table *init_supp_page_table (void)
   
   // Initialise the supplemental page table.
   hash_init (&supp_page_table->page_table, supp_hash_func, supp_hash_less, NULL);
-  
+
   return supp_page_table;
 }
 
@@ -42,8 +43,10 @@ void destroy_supp_pt (struct supp_page_table *supp_page_table)
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info)
 {
   struct page *page = (struct page *) malloc(sizeof(struct page));
+  printf("add_supp_pt %d\n", from);
   if (!page)
   {
+    // printf("exit exception\n");
     exit_exception ();
   }
 
@@ -61,6 +64,7 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
   }
   else 
   {
+    printf("page already exists\n");
     free (page);
     return false;
   }
@@ -99,15 +103,13 @@ bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr,
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
     struct file *file, int32_t start_byte, uint32_t read_bytes, uint32_t zero_bytes, bool writeable)
 {
-
   struct file_struct *file_info = (struct file_struct *) malloc(sizeof(struct file_struct));
   file_info->file = file;
   file_info->file_start_byte = start_byte;
   file_info->file_read_bytes = read_bytes;
   file_info->file_zero_bytes = zero_bytes;
   file_info->file_writeable = writeable;
-
-  return add_supp_pt (supp_page_table, addr, NULL, FILE, file_info);
+  return add_supp_pt (supp_page_table, addr, NULL, FILE, &file_info);
 }
 
 /* Finds the page in the supp_page_table.
@@ -118,10 +120,10 @@ struct page *find_page (struct supp_page_table *supp_page_table, void *page)
   struct page temp_page;
   temp_page.address = page;
 
-  struct hash_elem *elem = hash_find (&supp_page_table->page_table, &temp_page.elem);
-  if (elem) 
+  struct hash_elem *e = hash_find (&supp_page_table->page_table, &temp_page.elem);
+  if (e) 
   {
-    return hash_entry (elem, struct page, elem);
+    return hash_entry (e, struct page, elem);
   }
   else
   {
@@ -132,15 +134,16 @@ struct page *find_page (struct supp_page_table *supp_page_table, void *page)
 /* Load page back on frame (into the memory). */
 bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address)
 {
-  /* see also userprog/exception.c */
 
   struct page *page = find_page(supp_page_table, address);
-  if(!page) {
+  if(!page) 
+  {
     return false;
   }
 
   // Already loaded
-  if(page->page_from == FRAME) {  
+  if(page->page_from == FRAME) 
+  {  
     return true;
   }
 
@@ -186,7 +189,6 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     return false;
   }
 
-  // Make SURE to mapped kpage is stored in the SPTE.
   page->faddress = frame_page;
   page->page_from = FRAME;
 
@@ -213,10 +215,12 @@ static bool load_page_of_file(struct page *page, void *faddress)
 
 /* Helper functions for the supplemental page table hash map. */
 
-static unsigned supp_hash_func(const struct hash_elem *e, void *aux UNUSED)
+static unsigned supp_hash_func(const struct hash_elem *elem, void *aux UNUSED)
 {
-  struct page *page = hash_entry (e, struct page, elem);
-  return hash_bytes(&page->address, sizeof(page->address));
+  struct page *page = hash_entry (elem, struct page, elem);
+  // printf("%d\n", page->address);
+  // printf("hash %d\n", hash_int(page->address));
+  return hash_int(page->address);
 }
 
 static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)
