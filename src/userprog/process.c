@@ -234,6 +234,9 @@ process_exit (void)
     free_process(process);
   }
 
+  destroy_supp_pt (thread_current()->supp_page_table);
+  thread_current()->supp_page_table = NULL;
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -353,6 +356,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
+  t->supp_page_table = init_supp_page_table();
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
@@ -624,34 +628,41 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       struct thread *t = thread_current ();
       uint8_t *kpage = pagedir_get_page (t->pagedir, upage);
       
-      if (kpage == NULL){
-        
-        /* Get a new page of memory. */
-        kpage = get_new_frame (PAL_USER, upage);
-        if (kpage == NULL){
-          return false;
-        }
-        
-        /* Add the page to the process's address space. */
-        if (!install_page (upage, kpage, writable)) 
-        {
-          destroy_frame (kpage);
-          return false; 
-        }        
+      if (!add_file_supp_pt(t->supp_page_table, upage, file, ofs,
+            page_read_bytes, page_zero_bytes, writable))
+      {
+        return false;
       }
 
-      /* Load data into the page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          destroy_frame (kpage);
-          return false; 
-        }
+      // if (kpage == NULL){
+        
+      //   /* Get a new page of memory. */
+      //   kpage = get_new_frame (PAL_USER, upage);
+      //   if (kpage == NULL){
+      //     return false;
+      //   }
+        
+      //   /* Add the page to the process's address space. */
+      //   if (!install_page (upage, kpage, writable)) 
+      //   {
+      //     destroy_frame (kpage);
+      //     return false; 
+      //   }        
+      // }
+
+      // /* Load data into the page. */
+      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      //   {
+      //     destroy_frame (kpage);
+      //     return false; 
+      //   }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
+      ofs += PGSIZE;
     }
   return true;
 }
@@ -699,5 +710,6 @@ install_page (void *upage, void *kpage, bool writable)
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
-          && pagedir_set_page (t->pagedir, upage, kpage, writable));
+          && pagedir_set_page (t->pagedir, upage, kpage, writable)
+          && add_frame_supp_pt(t->supp_page_table, upage, kpage));
 }
