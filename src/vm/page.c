@@ -4,7 +4,9 @@
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
 #include "threads/vaddr.h"
-
+#include <string.h>
+#include "userprog/pagedir.h"
+#include "filesys/file.h"
 
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
@@ -95,13 +97,14 @@ bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr,
 
 /* Add page with location of FILE. */
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
-    struct file *file, int32_t start_byte, uint32_t read_bytes, bool writeable)
+    struct file *file, int32_t start_byte, uint32_t read_bytes, uint32_t zero_bytes, bool writeable)
 {
 
   struct file_struct *file_info = (struct file_struct *) malloc(sizeof(struct file_struct));
   file_info->file = file;
   file_info->file_start_byte = start_byte;
   file_info->file_read_bytes = read_bytes;
+  file_info->file_zero_bytes = zero_bytes;
   file_info->file_writeable = writeable;
 
   return add_supp_pt (supp_page_table, addr, NULL, FILE, file_info);
@@ -162,12 +165,11 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     break;
 
   case FILE:
-    // if( vm_load_page_from_filesys(spte, frame_page) == false) {
-    //   vm_frame_free(frame_page);
-    //   return false;
-    // }
-
-    // writeable = page->writeable;
+    if (!load_page_of_file (page, frame_page)) {
+      destroy_frame (frame_page);
+      return false;
+    }
+    writeable = page->file_info->file_writeable;
     break;
 
   case FRAME:
@@ -178,25 +180,22 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     PANIC ("Page type does not exist.");
   }
 
-  // 4. Point the page table entry for the faulting virtual address to the physical page.
-  if(!pagedir_set_page (pagedir, upage, frame_page, writable)) {
-    vm_frame_free(frame_page);
+  // Point the page table entry for the faulting virtual address to the physical page.
+  if(!pagedir_set_page (pagedir, address, frame_page, writeable)) {
+    destroy_frame (frame_page);
     return false;
   }
 
   // Make SURE to mapped kpage is stored in the SPTE.
-  spte->kpage = frame_page;
-  spte->status = ON_FRAME;
+  page->faddress = frame_page;
+  page->page_from = FRAME;
 
   pagedir_set_dirty (pagedir, frame_page, false);
-
-  // unpin frame
-  vm_frame_unpin(frame_page);
 
   return true;
 }
 
-
+/* Load the page of a file from filesys. */
 static bool load_page_of_file(struct page *page, void *faddress)
 {
   file_seek (page->file_info->file, page->file_info->file_start_byte);
@@ -207,7 +206,7 @@ static bool load_page_of_file(struct page *page, void *faddress)
     return false;
   }
   // The rest of the bytes are set to 0.
-  memset (faddress + bytes_read, 0, page->file_info->zero_bytes);
+  memset (faddress + bytes_read, 0, page->file_info->file_zero_bytes);
   return true;
 }
 

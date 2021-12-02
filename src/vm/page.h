@@ -47,6 +47,7 @@ struct file_struct {
   struct file *file; /* Executable file. */
   int32_t file_start_byte; /*  Offset in the file to start read. */
   size_t file_read_bytes; /* Number of bytes to read. */
+  size_t file_zero_bytes; /* Number of trailing 0 bytes. */
   bool file_writeable;  /* Is file writable (based on segment being read). */
 };
 
@@ -57,7 +58,11 @@ bool add_frame_supp_pt (struct supp_page_table *supp_page_table, void *addr, voi
 bool add_zero_supp_pt (struct supp_page_table *supp_page_table, void *addr);
 bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr, uint32_t swap_index);
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
-    struct file *file, int32_t start_byte, uint32_t read_bytes, bool writeable);
+    struct file *file, int32_t start_byte, uint32_t read_bytes, uint32_t zero_bytes, bool writeable);
+struct page *find_page (struct supp_page_table *supp_page_table, void *page);
+bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address);
+bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info);
+
 
 
 

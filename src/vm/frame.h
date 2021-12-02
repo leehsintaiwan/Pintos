@@ -4,6 +4,8 @@
 #include <hash.h>
 #include "lib/kernel/hash.h"
 #include "threads/palloc.h"
+#include "threads/malloc.h"
+#include "threads/synch.h"
 
 
 struct frame_table

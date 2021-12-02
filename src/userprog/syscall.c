@@ -13,6 +13,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <syscall-nr.h>
+#include "lib/kernel/stdio.h"
 
 #define NUM_OF_SYSCALLS 13
 

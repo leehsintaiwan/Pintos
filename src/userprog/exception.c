@@ -5,6 +5,7 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 #include "userprog/process.h"
 #include "vm/page.h"
 #include "vm/frame.h"
@@ -14,6 +15,7 @@ static long long page_fault_cnt;
 
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
+static void page_fault_error (bool user, struct intr_frame *f);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
@@ -152,19 +154,32 @@ page_fault (struct intr_frame *f)
 
 #ifdef VM
    void *fault_page = pg_round_down (fault_addr); 
-   struct thread *t = thread_curent ();
+   struct thread *t = thread_current ();
 
+   if (!not_present)
+   {
+      page_fault_error (user, f);
+   }
 
    // Look up upage in the process' supplementary page table.
-   struct supp_page_table *supp_page_table = &t->supp_page_table;
+   struct supp_page_table *supp_page_table = t->supp_page_table;
    struct page *page = find_page(supp_page_table, fault_page);
    if (!page) {
-      return NULL;
+      return;
+   }
+
+   if (!load_page(t->supp_page_table, t->pagedir, fault_page))
+   {
+      page_fault_error (user, f);
    }
 #endif
 
+}
 
-  thread_current()->process->exit_status = -1;
+
+static void page_fault_error (bool user, struct intr_frame *f)
+{
+   thread_current()->process->exit_status = -1;
   /* A page fault in the kernel merely sets the interupt 
      frame eax to 0xffffffff and copies the old value into eip. */
   if (!user) 
@@ -184,4 +199,3 @@ page_fault (struct intr_frame *f)
 //           user ? "user" : "kernel");
 //   kill (f);
 }
-
