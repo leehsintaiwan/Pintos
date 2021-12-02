@@ -235,5 +235,9 @@ static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
   {
     destroy_frame (page->faddress);
   }
+  else if (page->page_from == FILE)
+  {
+    free (page->file_info);
+  }
   free (page);
 }
