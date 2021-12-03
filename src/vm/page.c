@@ -42,6 +42,7 @@ void destroy_supp_pt (struct supp_page_table *supp_page_table)
 
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info)
 {
+
   struct page *page = (struct page *) malloc(sizeof(struct page));
   printf("add_supp_pt %d\n", from);
   if (!page)
@@ -58,16 +59,20 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
   page->file_info = file_info;
 
   struct hash_elem *old = hash_insert (&supp_page_table->page_table, &page->elem);
-  // Return true if successful and false if the page already exists (unsuccessful).
-  if (!old) {
-    return true;
-  }
-  else 
+  // Return true and replace old page if the page already exists.
+  if (old) 
   {
-    printf("page already exists\n");
-    free (page);
-    return false;
+    struct page *old_page = hash_entry (old, struct page, elem);
+    printf("%d\n", page->file_info->file_writeable);
+    printf("testing old\n");
+    page->file_info->file_writeable = old_page->file_info->file_writeable || page->file_info->file_writeable;
+    if (old_page->page_from == EXECFILE)
+    {
+      free(old_page->file_info);
+    }
+    struct hash_elem *page_elem = hash_replace (&supp_page_table->page_table, &page->elem);
   }
+  return true;
 
 }
 
@@ -99,7 +104,7 @@ bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr,
 }
 
 
-/* Add page with location of FILE. */
+/* Add page with location of EXECFILE. */
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
     struct file *file, int32_t start_byte, uint32_t read_bytes, uint32_t zero_bytes, bool writeable)
 {
@@ -109,7 +114,7 @@ bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
   file_info->file_read_bytes = read_bytes;
   file_info->file_zero_bytes = zero_bytes;
   file_info->file_writeable = writeable;
-  return add_supp_pt (supp_page_table, addr, NULL, FILE, file_info);
+  return add_supp_pt (supp_page_table, addr, NULL, EXECFILE, file_info);
 }
 
 /* Finds the page in the supp_page_table.
@@ -167,7 +172,7 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     // TODO: Implement swap in
     break;
 
-  case FILE:
+  case EXECFILE:
     if (!load_page_of_file (page, frame_page)) {
       destroy_frame (frame_page);
       return false;
@@ -239,7 +244,7 @@ static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
   {
     destroy_frame (page->faddress);
   }
-  else if (page->page_from == FILE)
+  else if (page->page_from == EXECFILE)
   {
     free (page->file_info);
   }

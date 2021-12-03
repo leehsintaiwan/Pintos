@@ -16,7 +16,7 @@ enum page_loc {
   FRAME, /* In memory. */
   ZERO, /* Zeros. */
   SWAP, /* In swap slot. */
-  FILE /* In filesys/executable. */
+  EXECFILE /* In filesys/executable. */
 };
 
 
