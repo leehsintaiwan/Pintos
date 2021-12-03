@@ -33,6 +33,7 @@ static void write (struct intr_frame *f);
 static void seek (struct intr_frame *f);
 static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
+static void mmap (struct intr_frame *f);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -64,6 +65,7 @@ syscall_init (void)
   syscall_function[SYS_SEEK] = &seek;
   syscall_function[SYS_TELL] = &tell;
   syscall_function[SYS_CLOSE] = &close;
+  syscall_function[SYS_MMAP] = &mmap;
   lock_init (&filesys_lock);
 }
 
@@ -378,6 +380,79 @@ static void close (struct intr_frame *f)
   }
 
   lock_release (&filesys_lock);
+}
+
+/* System Calls for memory mapping*/
+
+/* Maps file open as fd into process' virtual address space*/
+static void mmap (struct intr_frame *f)
+{
+  int fd = get_num (f->esp + 4);
+
+  /* Call to mmap fails if fd is 0 or 1 */
+  if (fd <= 1)
+  {
+    return_frame (f, -1);
+    return;
+  }
+
+  void *addr = get_address (f->esp + 8);
+
+  /* Call to mmap fails if addr is 0 */
+  if (addr == 0)
+  {
+    return_frame (f, -1);
+    return;
+  }
+
+  lock_acquire (&filesys_lock);
+  struct fd *file_desc = find_fd (thread_current(), fd);
+
+  if (!file_desc)
+  {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
+  }
+
+  /* Call to mmap may fail if file has length of zero bytes */
+  int size = file_length (file_desc->file);
+  if (size == 0)
+  {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
+  }
+
+  /* Check if the range of pages overlaps any existing set of mapped pages */
+  int32_t offset;
+  for (offset = 0; offset < size; offset += PGSIZE)
+  {
+    addr = addr + offset;
+
+    if (find_page (thread_current()->supp_page_table, addr))
+    {
+      lock_release (&filesys_lock);
+      return_frame (f, -1);
+      return;
+    }
+
+  }
+
+  for (offset = 0; offset < size; offset += PGSIZE)
+  {
+    addr = addr + offset;
+
+    uint32_t read_bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
+    uint32_t zero_bytes = PGSIZE - read_bytes;
+
+    add_file_supp_pt (thread_current()->supp_page_table, addr, f, offset, read_bytes, zero_bytes, true);
+  }
+
+  /* ASSIGN MAPPING ID HERE */
+
+  lock_release (&filesys_lock);
+// uncomment when mapping_id is implemented  return_frame (f, mapping_id);
 }
 
 /* Helper Functions */
