@@ -12,10 +12,10 @@ static size_t swap_table_size; // The size of the swap table (number of swap slo
 // Initialise the swap table
 void swap_init (void) 
 {
-    block_swap = block_get_role(BLOCK_SWAP);
-    swap_table_size = block_size(block_swap) / SECTORS_PER_PAGE;
-    swap_bitmap = bitmap_create(swap_table_size);
-    bitmap_set_all(swap_bitmap, true);
+  block_swap = block_get_role(BLOCK_SWAP);
+  swap_table_size = block_size(block_swap) / SECTORS_PER_PAGE;
+  swap_bitmap = bitmap_create(swap_table_size);
+  bitmap_set_all(swap_bitmap, true);
 }
 
 // Read the content from the swap index, and store into "page"
@@ -54,6 +54,7 @@ uint32_t swap_write (void *page)
   */
   uint32_t swap_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, true);
 
+  // Write the content into the swap slot  
   for (int i = 0; i < SECTORS_PER_PAGE; ++ i) 
   {
     block_write(block_swap, swap_index * SECTORS_PER_PAGE + i, page + BLOCK_SECTOR_SIZE * i);
@@ -62,9 +63,20 @@ uint32_t swap_write (void *page)
   return swap_index;
 }
 
-// Free a swap entry
+// Free a swap slot
 void free_swap (uint32_t swap_index) 
 {
+  // Assert that the swap index is valid
+  ASSERT (swap_index < swap_table_size);
 
+  // Assert that the swap slot is not empty  
+  if (bitmap_test(swap_bitmap, swap_index)) 
+  {
+    printf("ERROR: Attempted to free an empty swap slot");
+    return;
+  }
+
+  // Indicate availiability for the index
+  bitmap_set(swap_bitmap, swap_index, true);
 }
 
