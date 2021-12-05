@@ -212,6 +212,73 @@ static bool load_page_of_file(struct page *page, void *faddress)
   return true;
 }
 
+bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
+    void *addr, struct file *f, off_t offset, size_t bytes)
+{
+  struct page *page = find_page (supp_page_table, addr);
+  if (page == NULL) {
+    PANIC ("munmap - page is missing");
+  }
+
+  // Pin the associated frame if loade because page fault could occur while swapping in
+//  if (page->page_from == FRAME) {
+//    vm_frame_pin (page->faddress);
+//  }
+
+  switch (page->page_from)
+  {
+  case FRAME:
+    {
+    // Dirty frame handling (write into file)
+    // Check if the address or mapped frame is dirty. If so, write to file.
+    bool is_dirty = page->dirty_bit;
+    is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
+    is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->faddress);
+    if (is_dirty) 
+    {
+      file_write_at (f, page->address, bytes, offset);
+    }
+
+    // clear the page mapping, and release the frame
+    destroy_frame (page->faddress);
+    pagedir_clear_page (pagedir, page->address);
+    }
+    break;
+
+  case SWAP:
+    {
+      bool is_dirty = page->dirty_bit;
+      is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
+      if (is_dirty) 
+      {
+        // load from swap, and write back to file
+        void *temp_page = palloc_get_page(0); // in the kernel
+        swap_read (page->swap_index, temp_page);
+        file_write_at (f, temp_page, PGSIZE, offset);
+        palloc_free_page (temp_page);
+      }
+      else 
+      {
+        // just throw away the swap.
+        free_swap (page->swap_index);
+      }
+    }
+    break;
+
+  case FILE:
+    // do nothing.
+    break;
+
+  default:
+    // Impossible, such as ALL_ZERO
+    PANIC ("unreachable state");
+  }
+
+  // the supplemental page table entry is also removed.
+  // so that the unmapped memory is unreachable. Later access will fault.
+  hash_delete(&supp_page_table->page_table, &page->elem);
+  return true;
+}
 
 /* Helper functions for the supplemental page table hash map. */
 

@@ -38,6 +38,7 @@ static void munmap (struct intr_frame *f);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
+static struct md *find_md (struct thread *t, mapid_t mapping_id);
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
@@ -453,9 +454,9 @@ static void mmap (struct intr_frame *f)
 
   /* ASSIGN MAPPING ID HERE */
   mapid_t mapping_id;
-  if (!list_empty(thread_current()->mmap_list))
+  if (!list_empty (thread_current()->mmap_list))
   {
-    mapping_id = list_entry(list_back(thread_current()->mmap_list), struct md, elem)->id + 1;
+    mapping_id = list_entry (list_back (thread_current()->mmap_list), struct md, elem)->id + 1;
   }
   else
   {
@@ -467,7 +468,7 @@ static void mmap (struct intr_frame *f)
   mmap_desc->file = f;
   mmap_desc->addr = addr;
   mmap_desc->size = size;
-  list_push_back(thread_current()->mmap_list, &mmap_desc->elem);
+  list_push_back (thread_current()->mmap_list, &mmap_desc->elem);
 
   lock_release (&filesys_lock);
   return_frame (f, mapping_id);
@@ -476,7 +477,29 @@ static void mmap (struct intr_frame *f)
 static void munmap (struct intr_frame *f)
 {
   mapid_t mapping_id = get_num (f->esp + 4);
+  struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
+  if (mmap_desc == NULL)
+  {
+    return;
+  }
+
+  lock_acquire (&filesys_lock);
+
+  size_t size = mmap_desc->size;
+  for (int32_t offset = 0; offset < size; offset += PGSIZE)
+  {
+    void *map_addr = mmap_desc->addr + offset;
+    uint32_t bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
+
+    unmap_supp_pt (thread_current()->supp_page_table, thread_current()->pagedir, map_addr, mmap_desc->file, offset, bytes);
+  }
+
+  list_remove (&mmap_desc->elem);
+  file_close (mmap_desc->file);
+  free (mmap_desc);
+
+  lock_release (&filesys_lock);
 }
 
 /* Helper Functions */
