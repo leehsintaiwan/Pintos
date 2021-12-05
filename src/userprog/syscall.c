@@ -68,7 +68,7 @@ syscall_init (void)
   syscall_function[SYS_TELL] = &tell;
   syscall_function[SYS_CLOSE] = &close;
   syscall_function[SYS_MMAP] = &mmap;
-  syscall_function[SYS_MUNMAP] = &munmap;
+  syscall_function[SYS_MUNMAP] = &sys_munmap;
   lock_init (&filesys_lock);
 }
 
@@ -474,14 +474,19 @@ static void mmap (struct intr_frame *f)
   return_frame (f, mapping_id);
 }
 
-static void munmap (struct intr_frame *f)
+static void sys_munmap (struct intr_frame *f)
 {
   mapid_t mapping_id = get_num (f->esp + 4);
+  munmap (mapping_id);
+}
+
+static bool munmap (mapid_t mapping_id)
+{
   struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
   if (mmap_desc == NULL)
   {
-    return;
+    return false;
   }
 
   lock_acquire (&filesys_lock);
@@ -500,6 +505,7 @@ static void munmap (struct intr_frame *f)
   free (mmap_desc);
 
   lock_release (&filesys_lock);
+  return true;
 }
 
 /* Helper Functions */

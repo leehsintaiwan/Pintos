@@ -237,6 +237,16 @@ process_exit (void)
   destroy_supp_pt (thread_current()->supp_page_table);
   thread_current()->supp_page_table = NULL;
 
+  /* Unmaps mappings when process exits */
+
+  struct list *mlist = thread_current()->mmap_list;
+  while (!list_empty(mlist))
+  {
+    struct list_elem *e = list_begin (mlist);
+    struct md *mmap_desc = list_entry(e, struct md, elem);
+    ASSERT (munmap(mmap_desc->id) == true);
+  }
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
