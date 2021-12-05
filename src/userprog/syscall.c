@@ -34,6 +34,7 @@ static void seek (struct intr_frame *f);
 static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
 static void mmap (struct intr_frame *f);
+static void munmap (struct intr_frame *f);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -66,6 +67,7 @@ syscall_init (void)
   syscall_function[SYS_TELL] = &tell;
   syscall_function[SYS_CLOSE] = &close;
   syscall_function[SYS_MMAP] = &mmap;
+  syscall_function[SYS_MUNMAP] = &munmap;
   lock_init (&filesys_lock);
 }
 
@@ -471,6 +473,12 @@ static void mmap (struct intr_frame *f)
   return_frame (f, mapping_id);
 }
 
+static void munmap (struct intr_frame *f)
+{
+  mapid_t mapping_id = get_num (f->esp + 4);
+
+}
+
 /* Helper Functions */
 
 /* Function to close all files open by current thread. */
@@ -515,6 +523,24 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 		struct fd *file_desc = list_entry (e, struct fd, elem);
 		if (file_desc->id == fd_id)
 			return file_desc;
+	}
+
+	return NULL;
+}
+
+/* Find the map descriptor in thread t using the 
+   given mapping id. */
+static struct md *find_md (struct thread *t, mapid_t mapping_id)
+{
+  ASSERT (t);
+
+	for (struct list_elem *e = list_begin (&t->mmap_list); 
+       e != list_end (&t->mmap_list);
+	     e = list_next (e))
+	{
+		struct md *mmap_desc = list_entry (e, struct md, elem);
+		if (mmap_desc->id == mapping_id)
+			return mmap_desc;
 	}
 
 	return NULL;
