@@ -118,6 +118,17 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
+typedef int mmapid_t;
+
+struct md
+   {
+      mmapid_t id;
+      struct list_elem elem;
+      struct file* file;
+      void *addr;
+      size_t size;
+   }
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "mlfqs". */
