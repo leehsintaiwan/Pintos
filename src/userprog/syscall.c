@@ -450,9 +450,25 @@ static void mmap (struct intr_frame *f)
   }
 
   /* ASSIGN MAPPING ID HERE */
+  mapid_t mapping_id;
+  if (!list_empty(thread_current()->mmap_list))
+  {
+    mapping_id = list_entry(list_back(thread_current()->mmap_list), struct md, elem)->id + 1;
+  }
+  else
+  {
+    mapping_id = 1;
+  }
+
+  struct md *mmap_desc = (struct md*) malloc(sizeof(struct md));
+  mmap_desc->id = mapping_id;
+  mmap_desc->file = f;
+  mmap_desc->addr = addr;
+  mmap_desc->size = size;
+  list_push_back(thread_current()->mmap_list, &mmap_desc->elem);
 
   lock_release (&filesys_lock);
-// uncomment when mapping_id is implemented  return_frame (f, mapping_id);
+  return_frame (f, mapping_id);
 }
 
 /* Helper Functions */

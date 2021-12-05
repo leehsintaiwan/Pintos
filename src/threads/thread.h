@@ -102,9 +102,9 @@ struct thread
     /* Owned by process.c */
     struct process *process;            /* Stores process information */
 
-    struct list open_fd; /* List of open file descriptors. */
+    struct list open_fd;                /* List of open file descriptors. */
 
-    struct file *executable; /* This process' executable file. */
+    struct file *executable;            /* This process' executable file. */
 
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -112,17 +112,19 @@ struct thread
 
 #ifdef VM
     struct supp_page_table *supp_page_table;   /* Supplemental page table. */
+
+    struct list *mmap_list;                     /* Memory mapped files. */
 #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
 
-typedef int mmapid_t;
+typedef int mapid_t;
 
 struct md
    {
-      mmapid_t id;
+      mapid_t id;
       struct list_elem elem;
       struct file* file;
       void *addr;
