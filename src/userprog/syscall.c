@@ -428,9 +428,9 @@ static void mmap (struct intr_frame *f)
   int32_t offset;
   for (offset = 0; offset < size; offset += PGSIZE)
   {
-    addr = addr + offset;
+    void *map_addr = addr + offset;
 
-    if (find_page (thread_current()->supp_page_table, addr))
+    if (find_page (thread_current()->supp_page_table, map_addr))
     {
       lock_release (&filesys_lock);
       return_frame (f, -1);
@@ -441,12 +441,12 @@ static void mmap (struct intr_frame *f)
 
   for (offset = 0; offset < size; offset += PGSIZE)
   {
-    addr = addr + offset;
+    void *map_addr = addr + offset;
 
     uint32_t read_bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
     uint32_t zero_bytes = PGSIZE - read_bytes;
 
-    add_file_supp_pt (thread_current()->supp_page_table, addr, f, offset, read_bytes, zero_bytes, true);
+    add_file_supp_pt (thread_current()->supp_page_table, map_addr, f, offset, read_bytes, zero_bytes, true);
   }
 
   /* ASSIGN MAPPING ID HERE */

@@ -127,7 +127,7 @@ struct md
       struct file* file;
       void *addr;
       size_t size;
-   }
+   };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
