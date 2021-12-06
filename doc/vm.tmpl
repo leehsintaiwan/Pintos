@@ -39,6 +39,9 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Describe your code for finding the frame (if any) or other location that 
 >> contains the data of a given page.
 
+We use a struct page to keep track of the frame address for that particular page.
+So we can just return the frame address stored in the struct.
+
 >> A3: (2 marks)
 >> How have you implemented sharing of read only pages?
 
