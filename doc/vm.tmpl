@@ -39,6 +39,9 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> Describe your code for finding the frame (if any) or other location that 
 >> contains the data of a given page.
 
+We use a struct page to keep track of the frame address for that particular page.
+So we can just return the frame address stored in the struct.
+
 >> A3: (2 marks)
 >> How have you implemented sharing of read only pages?
 
@@ -50,11 +53,22 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> You should consider both when there are and are not free frames 
 >> available in memory.
 
+We defined a "lock" field (a struct lock) in the frame_table struct. This lock is acquired whenever 
+a user process attempts to access a frame in the frame table in any way (add, get, destroy, lookup), and released only after the frame table 
+has been accessed (and potentially modified). This prevents two user processes accessing the frame table simultaneously, thus avoiding races.
+Even if there are no free frames in the table, when we evict a frame we still lock the frame table before eviction and release after eviction to avoid races.
+
 ---- RATIONALE ----
 
 >> A5: (2 marks)
 >> Why did you choose the data structure(s) that you did for representing the
 >> supplemental page table and frame table?
+
+We chose to implement our supplemental page table and frame table by using a hash table,
+because hash tables support efficient lookup, insertion and deletion.
+Frequent adding and deleting a page and frame is necessary therefore we refrained
+from using a list.
+
 
                PAGING TO AND FROM DISK
                =======================
@@ -116,6 +130,25 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> global or static variable, `typedef', or enumeration that relates to your 
 >> file mapping table.  
 >> Identify the purpose of each in roughly 25 words.
+
+typedef int mapid_t;
+
+typedef is used to distinguish between a mapping id and a normal int
+
+struct md
+   {
+      mapid_t id;
+      struct list_elem elem;
+      struct file* file;
+      void *addr;
+      size_t size;
+   };
+
+A struct containing the information of a map descriptor,
+including its mapping id, pointer to the file, where the file is mapped to and the file size
+
+struct thread now contains a list of memory mapped files, given by the field:
+struct list *mmap_list;
 
 ---- ALGORITHMS ----
 

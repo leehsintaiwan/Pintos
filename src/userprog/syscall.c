@@ -35,6 +35,10 @@ static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
 static void mmap (struct intr_frame *f);
 static void sys_munmap (struct intr_frame *f);
+<<<<<<< HEAD
+static bool munmap (mapid_t mapping_id);
+=======
+>>>>>>> d828363459d607847680cffc4955aebbcd1271cd
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -411,11 +415,18 @@ static void mmap (struct intr_frame *f)
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
 
-  if (!file_desc)
+  if( file_desc && file_desc->file) 
   {
-    lock_release (&filesys_lock);
-    return_frame (f, -1);
-    return;
+    // reopen file so that it doesn't interfere with process itself
+    // it will be store in the mmap_desc struct (later closed on munmap)
+    struct file *reopened_file = file_reopen (file_desc->file);
+    
+    if (!reopened_file)
+    {
+      lock_release (&filesys_lock);
+      return_frame (f, -1);
+      return;
+    }
   }
 
   /* Call to mmap may fail if file has length of zero bytes */
