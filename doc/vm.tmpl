@@ -59,6 +59,12 @@ So we can just return the frame address stored in the struct.
 >> Why did you choose the data structure(s) that you did for representing the
 >> supplemental page table and frame table?
 
+We chose to implement our supplemental page table and frame table by using a hash table,
+because hash tables support efficient lookup, insertion and deletion.
+Frequent adding and deleting a page and frame is necessary therefore we refrained
+from using a list.
+
+
                PAGING TO AND FROM DISK
                =======================
 
