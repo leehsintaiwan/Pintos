@@ -33,9 +33,12 @@ static void write (struct intr_frame *f);
 static void seek (struct intr_frame *f);
 static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
+static void mmap (struct intr_frame *f);
+static void munmap (struct intr_frame *f);
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
+static struct md *find_md (struct thread *t, mapid_t mapping_id);
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static bool is_string_valid (char *str);
@@ -64,6 +67,8 @@ syscall_init (void)
   syscall_function[SYS_SEEK] = &seek;
   syscall_function[SYS_TELL] = &tell;
   syscall_function[SYS_CLOSE] = &close;
+  syscall_function[SYS_MMAP] = &mmap;
+  syscall_function[SYS_MUNMAP] = &sys_munmap;
   lock_init (&filesys_lock);
 }
 
@@ -380,6 +385,129 @@ static void close (struct intr_frame *f)
   lock_release (&filesys_lock);
 }
 
+/* System Calls for memory mapping*/
+
+/* Maps file open as fd into process' virtual address space*/
+static void mmap (struct intr_frame *f)
+{
+  int fd = get_num (f->esp + 4);
+
+  /* Call to mmap fails if fd is 0 or 1 */
+  if (fd <= 1)
+  {
+    return_frame (f, -1);
+    return;
+  }
+
+  void *addr = get_address (f->esp + 8);
+
+  /* Call to mmap fails if addr is 0 */
+  if (addr == 0)
+  {
+    return_frame (f, -1);
+    return;
+  }
+
+  lock_acquire (&filesys_lock);
+  struct fd *file_desc = find_fd (thread_current(), fd);
+
+  if (!file_desc)
+  {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
+  }
+
+  /* Call to mmap may fail if file has length of zero bytes */
+  int size = file_length (file_desc->file);
+  if (size == 0)
+  {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
+  }
+
+  /* Check if the range of pages overlaps any existing set of mapped pages */
+  int32_t offset;
+  for (offset = 0; offset < size; offset += PGSIZE)
+  {
+    void *map_addr = addr + offset;
+
+    if (find_page (thread_current()->supp_page_table, map_addr))
+    {
+      lock_release (&filesys_lock);
+      return_frame (f, -1);
+      return;
+    }
+
+  }
+
+  for (offset = 0; offset < size; offset += PGSIZE)
+  {
+    void *map_addr = addr + offset;
+
+    uint32_t read_bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
+    uint32_t zero_bytes = PGSIZE - read_bytes;
+
+    add_file_supp_pt (thread_current()->supp_page_table, map_addr, f, offset, read_bytes, zero_bytes, true);
+  }
+
+  /* ASSIGN MAPPING ID HERE */
+  mapid_t mapping_id;
+  if (!list_empty (thread_current()->mmap_list))
+  {
+    mapping_id = list_entry (list_back (thread_current()->mmap_list), struct md, elem)->id + 1;
+  }
+  else
+  {
+    mapping_id = 1;
+  }
+
+  struct md *mmap_desc = (struct md*) malloc(sizeof(struct md));
+  mmap_desc->id = mapping_id;
+  mmap_desc->file = f;
+  mmap_desc->addr = addr;
+  mmap_desc->size = size;
+  list_push_back (thread_current()->mmap_list, &mmap_desc->elem);
+
+  lock_release (&filesys_lock);
+  return_frame (f, mapping_id);
+}
+
+static void sys_munmap (struct intr_frame *f)
+{
+  mapid_t mapping_id = get_num (f->esp + 4);
+  munmap (mapping_id);
+}
+
+static bool munmap (mapid_t mapping_id)
+{
+  struct md *mmap_desc = find_md (thread_current(), mapping_id);
+
+  if (mmap_desc == NULL)
+  {
+    return false;
+  }
+
+  lock_acquire (&filesys_lock);
+
+  size_t size = mmap_desc->size;
+  for (int32_t offset = 0; offset < size; offset += PGSIZE)
+  {
+    void *map_addr = mmap_desc->addr + offset;
+    uint32_t bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
+
+    unmap_supp_pt (thread_current()->supp_page_table, thread_current()->pagedir, map_addr, mmap_desc->file, offset, bytes);
+  }
+
+  list_remove (&mmap_desc->elem);
+  file_close (mmap_desc->file);
+  free (mmap_desc);
+
+  lock_release (&filesys_lock);
+  return true;
+}
+
 /* Helper Functions */
 
 /* Function to close all files open by current thread. */
@@ -424,6 +552,24 @@ static struct fd *find_fd (struct thread *t, int fd_id)
 		struct fd *file_desc = list_entry (e, struct fd, elem);
 		if (file_desc->id == fd_id)
 			return file_desc;
+	}
+
+	return NULL;
+}
+
+/* Find the map descriptor in thread t using the 
+   given mapping id. */
+static struct md *find_md (struct thread *t, mapid_t mapping_id)
+{
+  ASSERT (t);
+
+	for (struct list_elem *e = list_begin (&t->mmap_list); 
+       e != list_end (&t->mmap_list);
+	     e = list_next (e))
+	{
+		struct md *mmap_desc = list_entry (e, struct md, elem);
+		if (mmap_desc->id == mapping_id)
+			return mmap_desc;
 	}
 
 	return NULL;
