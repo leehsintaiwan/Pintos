@@ -8,6 +8,7 @@
 #include "userprog/pagedir.h"
 #include "filesys/file.h"
 #include <stdio.h>
+#include "threads/thread.h"
 
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
@@ -40,11 +41,12 @@ void destroy_supp_pt (struct supp_page_table *supp_page_table)
   free (supp_page_table);
 }
 
+/* Add a page to the supp_page_table with it's specified page_loc and file_info if page is from an EXECFILE. */ 
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info)
 {
 
   struct page *page = (struct page *) malloc(sizeof(struct page));
-  printf("add_supp_pt %d\n", from);
+  // printf("add_supp_pt %d\n", from);
   if (!page)
   {
     // printf("exit exception\n");
@@ -63,13 +65,18 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
   if (old) 
   {
     struct page *old_page = hash_entry (old, struct page, elem);
-    printf("%d\n", page->file_info->file_writeable);
-    printf("testing old\n");
+    // printf("%d\n", page->file_info->file_writeable);
+    // printf("testing old\n");
     page->file_info->file_writeable = old_page->file_info->file_writeable || page->file_info->file_writeable;
-    if (old_page->page_from == EXECFILE)
+    if (old_page->page_from == FRAME)
     {
-      free(old_page->file_info);
+      destroy_frame (old_page->faddress);
     }
+    else if (old_page->page_from == EXECFILE)
+    {
+      free (old_page->file_info);
+    }
+    pagedir_clear_page (thread_current()->pagedir, old_page->address);
     struct hash_elem *page_elem = hash_replace (&supp_page_table->page_table, &page->elem);
   }
   return true;

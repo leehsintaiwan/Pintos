@@ -164,11 +164,11 @@ page_fault (struct intr_frame *f)
    
    // Look up upage in the process' supplementary page table.
    struct supp_page_table *supp_page_table = t->supp_page_table;
-   struct page *page = find_page(supp_page_table, fault_page);
-   if (!page) {
-      printf("page not found");
-      return;
-   }
+   // struct page *page = find_page(supp_page_table, fault_page);
+   // if (!page) {
+   //    printf("page not found");
+   //    return;
+   // }
    
    if (!load_page(t->supp_page_table, t->pagedir, fault_page))
    {

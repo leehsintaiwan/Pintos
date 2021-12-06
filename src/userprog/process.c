@@ -234,8 +234,8 @@ process_exit (void)
     free_process(process);
   }
 
-  destroy_supp_pt (thread_current()->supp_page_table);
-  thread_current()->supp_page_table = NULL;
+  // destroy_supp_pt (thread_current()->supp_page_table);
+  // thread_current()->supp_page_table = NULL;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -357,7 +357,7 @@ load (const char *file_name, char *args, void (**eip) (void), void **esp)
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   t->supp_page_table = init_supp_page_table();
-  printf("supp page table created\n");
+  // printf("supp page table created\n");
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
@@ -614,11 +614,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
-  printf("load segment\n");
+  // printf("load segment\n");
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
-      printf("loop check\n");
+      // printf("loop check\n");
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
@@ -627,16 +627,19 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       
       /* Check if virtual page already allocated */
       struct thread *t = thread_current ();
-      if(pagedir_get_page (t->pagedir, upage) == NULL)
+      if(pagedir_get_page (t->pagedir, upage) != NULL)
       {
-        printf("null which is correct\n");
+        // printf("null which is correct\n");
+        PANIC ("pagedir should be null");
       }
-      printf("add segment %d\n", upage);
-      if (!add_file_supp_pt(t->supp_page_table, upage, file, ofs,
-            page_read_bytes, page_zero_bytes, writable))
+      // printf("add segment %d\n", upage);
+      if (page_zero_bytes == PGSIZE) {
+        add_zero_supp_pt (t->supp_page_table, upage);
+      }
+      else 
       {
-        printf("fail add file\n");
-        return false;
+        add_file_supp_pt (t->supp_page_table, upage, file, ofs,
+            page_read_bytes, page_zero_bytes, writable);
       }
       
         
@@ -717,7 +720,7 @@ static bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();
-  printf("install page\n");
+  // printf("install page\n");
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
