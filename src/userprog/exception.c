@@ -162,14 +162,21 @@ page_fault (struct intr_frame *f)
       page_fault_error (user, f);
    }
    
-   // Look up upage in the process' supplementary page table.
-   // struct supp_page_table *supp_page_table = t->supp_page_table;
-   // struct page *page = find_page(supp_page_table, fault_page);
-   // if (!page) {
-   //    printf("page not found");
-   //    return;
-   // }
-   
+   void* esp = user ? f->esp : t->esp;
+
+   // Stack Growth
+   bool on_stack_frame = (esp <= fault_addr || fault_addr == esp - 4 || fault_addr == esp - 32);
+   bool is_stack_addr = (PHYS_BASE - MAX_STACK_SIZE <= fault_addr && fault_addr < PHYS_BASE);
+   if (on_stack_frame && is_stack_addr) 
+   {
+      if (find_page (t->supp_page_table, fault_page) == NULL)
+      {
+         printf("new page\n");
+         add_zero_supp_pt (t->supp_page_table, fault_page);
+         return;
+      }
+   }
+   printf("load page\n");
    if (!load_page(t->supp_page_table, t->pagedir, fault_page))
    {
       page_fault_error (user, f);

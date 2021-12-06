@@ -114,6 +114,8 @@ struct thread
     struct supp_page_table *supp_page_table;   /* Supplemental page table. */
 
     struct list mmap_list;                     /* Memory mapped files. */
+
+    uint8_t esp;  /* Stores the stack pointer, in case page fault occurs in the kernel. */
 #endif
 
     /* Owned by thread.c. */

@@ -76,7 +76,7 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   uint32_t syscall_no = *(uint32_t *) f->esp;
-
+  thread_current()->esp = f->esp;
   syscall_function[syscall_no](f);
 }
 
