@@ -147,7 +147,8 @@ struct md
 A struct containing the information of a map descriptor,
 including its mapping id, pointer to the file, where the file is mapped to and the file size
 
-struct thread now contains a list of memory mapped files
+struct thread now contains a list of memory mapped files, given by the field:
+struct list *mmap_list;
 
 ---- ALGORITHMS ----
 
