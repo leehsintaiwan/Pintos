@@ -244,7 +244,11 @@ process_exit (void)
   {
     struct list_elem *e = list_begin (mlist);
     struct md *mmap_desc = list_entry(e, struct md, elem);
-    ASSERT (munmap(mmap_desc->id) == true);
+    if (munmap(mmap_desc->id) == false)
+    {
+      PANIC ("Unmap failed");
+      return;
+    }
   }
 
   /* Destroy the current process's page directory and switch back

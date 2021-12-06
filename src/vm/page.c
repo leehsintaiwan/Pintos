@@ -9,6 +9,7 @@
 #include "filesys/file.h"
 #include <stdio.h>
 #include "threads/thread.h"
+#include "vm/swap.h"
 
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
@@ -77,7 +78,7 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
       free (old_page->file_info);
     }
     pagedir_clear_page (thread_current()->pagedir, old_page->address);
-    struct hash_elem *page_elem = hash_replace (&supp_page_table->page_table, &page->elem);
+    hash_replace (&supp_page_table->page_table, &page->elem);
   }
   return true;
 
@@ -223,7 +224,7 @@ static bool load_page_of_file(struct page *page, void *faddress)
 }
 
 bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
-    void *addr, struct file *f, off_t offset, size_t bytes)
+    void *addr, struct file *f, uint32_t offset, size_t bytes)
 {
   struct page *page = find_page (supp_page_table, addr);
   if (page == NULL) {
@@ -297,7 +298,7 @@ static unsigned supp_hash_func(const struct hash_elem *elem, void *aux UNUSED)
   struct page *page = hash_entry (elem, struct page, elem);
   // printf("%d\n", page->address);
   // printf("hash %d\n", hash_int(page->address));
-  return hash_int(page->address);
+  return hash_bytes(page->address, sizeof(page->address));
 }
 
 static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)
