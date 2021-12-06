@@ -53,6 +53,11 @@ So we can just return the frame address stored in the struct.
 >> You should consider both when there are and are not free frames 
 >> available in memory.
 
+We defined a "lock" field (a struct lock) in the frame_table struct. This lock is acquired whenever 
+a user process attempts to access a frame in the frame table in any way (add, get, destroy, lookup), and released only after the frame table 
+has been accessed (and potentially modified). This prevents two user processes accessing the frame table simultaneously, thus avoiding races.
+Even if there are no free frames in the table, when we evict a frame we still lock the frame table before eviction and release after eviction to avoid races.
+
 ---- RATIONALE ----
 
 >> A5: (2 marks)
