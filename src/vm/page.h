@@ -48,7 +48,7 @@ struct file_struct {
   int32_t file_start_byte; /*  Offset in the file to start read. */
   size_t file_read_bytes; /* Number of bytes to read. */
   size_t file_zero_bytes; /* Number of trailing 0 bytes. */
-  bool file_writeable;  /* Is file writable (based on segment being read). */
+  bool file_writeable;  /* Is file writeable (based on segment being read). */
 };
 
 
