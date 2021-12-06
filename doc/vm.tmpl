@@ -27,7 +27,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 
 ---- DATA STRUCTURES ----
 
->> A1: (2 marks)
+>> A1: (2 marks) ******************************************************************************************************************************************
 >> Copy here the declaration of each new or changed `struct' or `struct' member,
 >> global or static variable, `typedef', or enumeration that relates to your 
 >> supplemental page table and frame table. 
@@ -42,7 +42,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 We use a struct page to keep track of the frame address for that particular page.
 So we can just return the frame address stored in the struct.
 
->> A3: (2 marks)
+>> A3: (2 marks) ******************************************************************************************************************************************
 >> How have you implemented sharing of read only pages?
 
 ---- SYNCHRONIZATION ----
@@ -75,7 +75,7 @@ from using a list.
 
 ---- DATA STRUCTURES ----
 
->> B1: (1 mark)
+>> B1: (1 mark) ******************************************************************************************************************************************
 >> Copy here the declaration of each new or changed `struct' or `struct' member,
 >> global or static variable, `typedef', or enumeration that relates to your 
 >> swap table.  
@@ -83,38 +83,38 @@ from using a list.
 
 ---- ALGORITHMS ----
 
->> B2: (2 marks)
+>> B2: (2 marks) ******************************************************************************************************************************************
 >> When a frame is required but none is free, some frame must be evicted.
 >> Describe your code for choosing a frame to evict.
 
->> B3: (2 marks)
+>> B3: (2 marks) ******************************************************************************************************************************************
 >> When a process P obtains a frame that was previously used by a process Q,
 >> how do you adjust the page directory of process Q (and any other data 
 >> structures) to reflect the frame Q no longer has?
 
 ---- SYNCHRONIZATION ----
 
->> B4: (2 marks)
+>> B4: (2 marks) ******************************************************************************************************************************************
 >> Explain how your synchronization design prevents deadlock.  
 >> (You may want to refer to the necessary conditions for deadlock.)
 
->> B5: (2 marks)
+>> B5: (2 marks) ******************************************************************************************************************************************
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you ensure that Q cannot access or modify the page during the 
 >> eviction process?
 
->> B6: (2 marks)
+>> B6: (2 marks) ******************************************************************************************************************************************
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you avoid a race between P evicting Q's frame and Q faulting the page
 >> back in?
 
->> B7: (2 marks)
+>> B7: (2 marks) ******************************************************************************************************************************************
 >> Explain how you handle access to user pages that are not present when a
 >> system call is made.
 
 ---- RATIONALE ----
 
->> B8: (2 marks)
+>> B8: (2 marks) ******************************************************************************************************************************************
 >> There is an obvious trade-off between parallelism and the complexity of your
 >> synchronisation methods. 
 >> Explain where your design falls along this continuum and why you chose to 
@@ -163,7 +163,7 @@ overlap with an existing set of mapped pages so we release the lock and release 
 
 ---- RATIONALE ----
 
->> C3: (1 mark)
+>> C3: (1 mark) ******************************************************************************************************************************************
 >> Mappings created with "mmap" have similar semantics to those of data 
 >> demand-paged from executables. 
 >> How does your code-base take advantage of this?
