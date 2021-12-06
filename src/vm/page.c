@@ -174,9 +174,7 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     break;
 
   case SWAP:
-    // Swap in: load the data from the swap disc
-
-    // TODO: Implement swap in
+    swap_read (page->swap_index, frame_page);
     break;
 
   case EXECFILE:
@@ -277,7 +275,7 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     }
     break;
 
-  case FILE:
+  case EXECFILE:
     // do nothing.
     break;
 
