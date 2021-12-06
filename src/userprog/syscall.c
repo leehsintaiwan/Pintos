@@ -35,10 +35,6 @@ static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
 static void mmap (struct intr_frame *f);
 static void sys_munmap (struct intr_frame *f);
-<<<<<<< HEAD
-static bool munmap (mapid_t mapping_id);
-=======
->>>>>>> d828363459d607847680cffc4955aebbcd1271cd
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
