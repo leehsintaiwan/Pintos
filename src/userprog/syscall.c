@@ -454,9 +454,9 @@ static void mmap (struct intr_frame *f)
 
   /* ASSIGN MAPPING ID HERE */
   mapid_t mapping_id;
-  if (!list_empty (thread_current()->mmap_list))
+  if (!list_empty (&thread_current()->mmap_list))
   {
-    mapping_id = list_entry (list_back (thread_current()->mmap_list), struct md, elem)->id + 1;
+    mapping_id = list_entry (list_back (&thread_current()->mmap_list), struct md, elem)->id + 1;
   }
   else
   {
@@ -468,7 +468,7 @@ static void mmap (struct intr_frame *f)
   mmap_desc->file = file_desc->file;
   mmap_desc->addr = addr;
   mmap_desc->size = size;
-  list_push_back (thread_current()->mmap_list, &mmap_desc->elem);
+  list_push_back (&thread_current()->mmap_list, &mmap_desc->elem);
 
   lock_release (&filesys_lock);
   return_frame (f, mapping_id);
@@ -501,7 +501,7 @@ bool munmap (mapid_t mapping_id)
   }
 
   list_remove (&mmap_desc->elem);
-  file_close (mmap_desc->file);
+  // file_close (mmap_desc->file);
   free (mmap_desc);
 
   lock_release (&filesys_lock);
@@ -561,8 +561,8 @@ static struct fd *find_fd (struct thread *t, int fd_id)
    given mapping id. */
 static struct md *find_md (struct thread *t, mapid_t mapping_id)
 {
-	for (struct list_elem *e = list_begin (t->mmap_list); 
-       e != list_end (t->mmap_list);
+	for (struct list_elem *e = list_begin (&t->mmap_list); 
+       e != list_end (&t->mmap_list);
 	     e = list_next (e))
 	{
 		struct md *mmap_desc = list_entry (e, struct md, elem);

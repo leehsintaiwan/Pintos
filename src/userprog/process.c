@@ -239,7 +239,7 @@ process_exit (void)
 
   /* Unmaps mappings when process exits */
 
-  struct list *mlist = thread_current()->mmap_list;
+  struct list *mlist = &thread_current()->mmap_list;
   while (!list_empty(mlist))
   {
     struct list_elem *e = list_begin (mlist);
