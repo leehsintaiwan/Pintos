@@ -117,6 +117,24 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> file mapping table.  
 >> Identify the purpose of each in roughly 25 words.
 
+typedef int mapid_t;
+
+typedef is used to distinguish between a mapping id and a normal int
+
+struct md
+   {
+      mapid_t id;
+      struct list_elem elem;
+      struct file* file;
+      void *addr;
+      size_t size;
+   };
+
+A struct containing the information of a map descriptor,
+including its mapping id, pointer to the file, where the file is mapped to and the file size
+
+struct thread now contains a list of memory mapped files
+
 ---- ALGORITHMS ----
 
 >> C2: (3 marks)
