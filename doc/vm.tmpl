@@ -156,6 +156,11 @@ struct list *mmap_list;
 >> Explain how you determine whether a new file mapping overlaps with any 
 >> existing segment and how you handle such a case.
 
+Before we map the files, we check if those pages are already mapped by using a for loop to go through the pages
+and check if they have already been mapped with find_page().
+If find_page() returns something that is not null at any point in the for loop, this means the new file mapping will
+overlap with an existing set of mapped pages so we release the lock and release -1 to indicate a failure.
+
 ---- RATIONALE ----
 
 >> C3: (1 mark)
