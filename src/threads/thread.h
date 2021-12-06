@@ -113,7 +113,7 @@ struct thread
 #ifdef VM
     struct supp_page_table *supp_page_table;   /* Supplemental page table. */
 
-    struct list *mmap_list;                     /* Memory mapped files. */
+    struct list mmap_list;                     /* Memory mapped files. */
 #endif
 
     /* Owned by thread.c. */

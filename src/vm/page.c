@@ -298,7 +298,8 @@ static unsigned supp_hash_func(const struct hash_elem *elem, void *aux UNUSED)
   struct page *page = hash_entry (elem, struct page, elem);
   // printf("%d\n", page->address);
   // printf("hash %d\n", hash_int(page->address));
-  return hash_bytes(page->address, sizeof(page->address));
+  return hash_int((int) page->address);
+  // return hash_bytes(page->address, sizeof(page->address));
 }
 
 static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)
