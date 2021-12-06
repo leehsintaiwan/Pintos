@@ -2,6 +2,7 @@
 #include "devices/block.h"
 #include "threads/vaddr.h"
 #include <bitmap.h>
+#include <stdio.h>
 
 #define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE)
 

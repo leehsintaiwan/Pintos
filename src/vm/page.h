@@ -62,6 +62,8 @@ bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
 struct page *find_page (struct supp_page_table *supp_page_table, void *page);
 bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address);
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info);
+bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
+    void *addr, struct file *f, uint32_t offset, size_t bytes);
 
 
 
