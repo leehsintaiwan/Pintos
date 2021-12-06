@@ -2,6 +2,7 @@
 #define USERPROG_SYSCALL_H
 
 #include "lib/kernel/list.h"
+#include "threads/thread.h"
 
 /* Process identifier. */
 typedef uint32_t pid_t;
@@ -10,6 +11,8 @@ typedef uint32_t pid_t;
 void syscall_init (void);
 void exit_exception (void);
 void close_all (void);
+bool munmap (mapid_t mapping_id);
+
 
 /* Lock to be used when accessing the file system. */
 struct lock filesys_lock;
