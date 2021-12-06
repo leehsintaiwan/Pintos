@@ -40,7 +40,7 @@ void swap_read (uint32_t swap_index, void *page)
   }
 
   // Make the index availiable to write again  
-  bitmap_set(swap_bitmap, swap_index, true);
+  free_swap(swap_index);
 }
 
 // Write the content of "page" into swap table and return the index in which it is stored
@@ -54,6 +54,12 @@ uint32_t swap_write (void *page)
     then flip the index to false to indicate occupation
   */
   uint32_t swap_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, true);
+
+  if (swap_index == BITMAP_ERROR) 
+  {
+    printf("ERROR: Swap table full");
+    return swap_index;
+  }
 
   // Write the content into the swap slot  
   for (int i = 0; i < SECTORS_PER_PAGE; ++ i) 
