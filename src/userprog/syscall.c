@@ -4,7 +4,6 @@
 #include "filesys/filesys.h"
 #include "lib/stdint.h"
 #include "lib/stdio.h"
-#include "process.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/thread.h"
@@ -14,6 +13,7 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "lib/kernel/stdio.h"
+#include "process.h"
 
 #define NUM_OF_SYSCALLS 13
 
@@ -35,7 +35,10 @@ static void tell (struct intr_frame *f);
 static void close (struct intr_frame *f);
 static void mmap (struct intr_frame *f);
 static void sys_munmap (struct intr_frame *f);
+<<<<<<< HEAD
 static bool munmap (mapid_t mapping_id);
+=======
+>>>>>>> d828363459d607847680cffc4955aebbcd1271cd
 
 /* Helper functions. */
 static struct fd *find_fd (struct thread *t, int fd_id);
@@ -457,7 +460,7 @@ static void mmap (struct intr_frame *f)
     uint32_t read_bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
     uint32_t zero_bytes = PGSIZE - read_bytes;
 
-    add_file_supp_pt (thread_current()->supp_page_table, map_addr, f, offset, read_bytes, zero_bytes, true);
+    add_file_supp_pt (thread_current()->supp_page_table, map_addr, file_desc->file, offset, read_bytes, zero_bytes, true);
   }
 
   /* ASSIGN MAPPING ID HERE */
@@ -473,7 +476,7 @@ static void mmap (struct intr_frame *f)
 
   struct md *mmap_desc = (struct md*) malloc(sizeof(struct md));
   mmap_desc->id = mapping_id;
-  mmap_desc->file = f;
+  mmap_desc->file = file_desc->file;
   mmap_desc->addr = addr;
   mmap_desc->size = size;
   list_push_back (thread_current()->mmap_list, &mmap_desc->elem);
@@ -488,7 +491,7 @@ static void sys_munmap (struct intr_frame *f)
   munmap (mapping_id);
 }
 
-static bool munmap (mapid_t mapping_id)
+bool munmap (mapid_t mapping_id)
 {
   struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
@@ -499,7 +502,7 @@ static bool munmap (mapid_t mapping_id)
 
   lock_acquire (&filesys_lock);
 
-  size_t size = mmap_desc->size;
+  int32_t size = (int32_t) mmap_desc->size;
   for (int32_t offset = 0; offset < size; offset += PGSIZE)
   {
     void *map_addr = mmap_desc->addr + offset;
@@ -569,10 +572,8 @@ static struct fd *find_fd (struct thread *t, int fd_id)
    given mapping id. */
 static struct md *find_md (struct thread *t, mapid_t mapping_id)
 {
-  ASSERT (t);
-
-	for (struct list_elem *e = list_begin (&t->mmap_list); 
-       e != list_end (&t->mmap_list);
+	for (struct list_elem *e = list_begin (t->mmap_list); 
+       e != list_end (t->mmap_list);
 	     e = list_next (e))
 	{
 		struct md *mmap_desc = list_entry (e, struct md, elem);
