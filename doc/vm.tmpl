@@ -142,6 +142,12 @@ from using a list.
 >> swap table.  
 >> Identify the purpose of each in roughly 25 words.
 
+#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE)
+static struct block *block_swap;
+static struct bitmap *swap_bitmap; // Bitmap for checking availiable swap slots
+static size_t swap_table_size; // The size of the swap table (number of swap slots)
+struct lock swap_lock; // Swap table lock to prevent race conditions
+
 ---- ALGORITHMS ----
 
 >> B2: (2 marks) ******************************************************************************************************************************************
