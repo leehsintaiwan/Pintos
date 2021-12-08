@@ -392,8 +392,7 @@ static void mmap (struct intr_frame *f)
 {
   int fd = get_num (f->esp + 4);
 
-  /* Call to mmap fails if fd is 0 or 1 */
-  if (fd <= 1)
+  if (fd < 2)
   {
     return_frame (f, -1);
     return;
@@ -401,21 +400,14 @@ static void mmap (struct intr_frame *f)
 
   void *addr = get_address (f->esp + 8);
 
-  /* Call to mmap fails if addr is 0 */
-  if (addr == 0)
-  {
-    return_frame (f, -1);
-    return;
-  }
-
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
-
+  struct file *reopened_file;
   if( file_desc && file_desc->file) 
   {
     // reopen file so that it doesn't interfere with process itself
     // it will be store in the mmap_desc struct (later closed on munmap)
-    struct file *reopened_file = file_reopen (file_desc->file);
+    reopened_file = file_reopen (file_desc->file);
     
     if (!reopened_file)
     {
@@ -426,7 +418,7 @@ static void mmap (struct intr_frame *f)
   }
 
   /* Call to mmap may fail if file has length of zero bytes */
-  int size = file_length (file_desc->file);
+  int size = file_length (reopened_file);
   if (size == 0)
   {
     lock_release (&filesys_lock);
@@ -456,7 +448,7 @@ static void mmap (struct intr_frame *f)
     uint32_t read_bytes = offset + PGSIZE < size ? PGSIZE : size - offset;
     uint32_t zero_bytes = PGSIZE - read_bytes;
 
-    add_file_supp_pt (thread_current()->supp_page_table, map_addr, file_desc->file, offset, read_bytes, zero_bytes, true);
+    add_file_supp_pt (thread_current()->supp_page_table, map_addr, reopened_file, offset, read_bytes, zero_bytes, true);
   }
 
   /* ASSIGN MAPPING ID HERE */
@@ -472,7 +464,7 @@ static void mmap (struct intr_frame *f)
 
   struct md *mmap_desc = (struct md*) malloc(sizeof(struct md));
   mmap_desc->id = mapping_id;
-  mmap_desc->file = file_desc->file;
+  mmap_desc->file = reopened_file;
   mmap_desc->addr = addr;
   mmap_desc->size = size;
   list_push_back (&thread_current()->mmap_list, &mmap_desc->elem);
@@ -489,6 +481,7 @@ static void sys_munmap (struct intr_frame *f)
 
 bool munmap (mapid_t mapping_id)
 {
+  printf("munmap\n");
   struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
   if (mmap_desc == NULL)
@@ -508,7 +501,7 @@ bool munmap (mapid_t mapping_id)
   }
 
   list_remove (&mmap_desc->elem);
-  // file_close (mmap_desc->file);
+  file_close (mmap_desc->file);
   free (mmap_desc);
 
   lock_release (&filesys_lock);

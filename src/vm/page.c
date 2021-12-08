@@ -322,5 +322,9 @@ static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
   {
     free (page->file_info);
   }
+  else if (page->page_from == SWAP) 
+  {
+    free_swap (page->swap_index);
+  }
   free (page);
 }

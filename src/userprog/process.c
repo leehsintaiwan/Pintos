@@ -212,18 +212,6 @@ process_exit (void)
   uint32_t *pd;
   
   close_all();
-
-  /* Allow write to executable once no longer running. */
-  if (!lock_held_by_current_thread(&filesys_lock))
-  {
-    lock_acquire(&filesys_lock);
-  }
-  if (cur->executable)
-  {
-    file_allow_write(cur->executable);
-    file_close(cur->executable);
-  }
-  lock_release(&filesys_lock);
   
   struct process *process = thread_current()->process;
   notify_child_process(&process->child_process_list);
@@ -234,8 +222,6 @@ process_exit (void)
     free_process(process);
   }
 
-  // destroy_supp_pt (thread_current()->supp_page_table);
-  // thread_current()->supp_page_table = NULL;
 
   /* Unmaps mappings when process exits */
 
@@ -250,6 +236,22 @@ process_exit (void)
       return;
     }
   }
+
+  /* Allow write to executable once no longer running. */
+  if (!lock_held_by_current_thread(&filesys_lock))
+  {
+    lock_acquire(&filesys_lock);
+  }
+  if (cur->executable)
+  {
+    file_allow_write(cur->executable);
+    file_close(cur->executable);
+  }
+  lock_release(&filesys_lock);
+
+  destroy_supp_pt (thread_current()->supp_page_table);
+  thread_current()->supp_page_table = NULL;
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
