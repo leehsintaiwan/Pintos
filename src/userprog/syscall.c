@@ -400,6 +400,12 @@ static void mmap (struct intr_frame *f)
 
   void *addr = get_address (f->esp + 8);
 
+  if (addr == NULL)
+  {
+    return_frame (f, -1);
+    return;
+  }
+
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
   struct file *reopened_file;
