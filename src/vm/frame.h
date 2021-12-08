@@ -7,18 +7,13 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 
-
-struct frame_table
-{
-  struct lock lock;
-  struct hash table;
-};
-
 struct frame
 {
-  void *frame_address;
-  void *page_address;
-  struct hash_elem hash_elem;
+  void *frame_address;         /* Frame address allocated using palloc */
+  void *page_address;          /* User page address that's using this frame */
+  struct hash_elem hash_elem;  /* Hash elem used in hash table */
+  struct list_elem list_elem;  /* List elem used in frame_list */
+  struct thread *thread;       /* Stores the thread that owns this frame */
 };
 
 void init_frames(void);
