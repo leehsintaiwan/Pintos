@@ -481,7 +481,7 @@ static void sys_munmap (struct intr_frame *f)
 
 bool munmap (mapid_t mapping_id)
 {
-  printf("munmap\n");
+  // printf("munmap\n");
   struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
   if (mmap_desc == NULL)
