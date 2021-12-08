@@ -423,6 +423,12 @@ static void mmap (struct intr_frame *f)
     }
   }
 
+  if ((int) addr % PGSIZE != 0) {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
+  }
+
   /* Call to mmap may fail if file has length of zero bytes */
   int size = file_length (reopened_file);
   if (size == 0)
