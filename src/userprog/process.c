@@ -249,8 +249,8 @@ process_exit (void)
   }
   lock_release(&filesys_lock);
 
-  destroy_supp_pt (thread_current()->supp_page_table);
-  thread_current()->supp_page_table = NULL;
+  // destroy_supp_pt (thread_current()->supp_page_table);
+  // thread_current()->supp_page_table = NULL;
 
 
   /* Destroy the current process's page directory and switch back
