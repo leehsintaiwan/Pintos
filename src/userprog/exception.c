@@ -171,12 +171,12 @@ page_fault (struct intr_frame *f)
    {
       if (find_page (t->supp_page_table, fault_page) == NULL)
       {
-         printf("new page\n");
+         // printf("new page\n");
          add_zero_supp_pt (t->supp_page_table, fault_page);
          return;
       }
    }
-   printf("load page\n");
+   // printf("load page\n");
    if (!load_page(t->supp_page_table, t->pagedir, fault_page))
    {
       page_fault_error (user, f);
