@@ -71,7 +71,7 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
     page->file_info->file_writeable = old_page->file_info->file_writeable || page->file_info->file_writeable;
     if (old_page->page_from == FRAME)
     {
-      destroy_frame (old_page->faddress);
+      destroy_frame (old_page->faddress, true);
     }
     else if (old_page->page_from == EXECFILE)
     {
@@ -180,7 +180,7 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
 
   case EXECFILE:
     if (!load_page_of_file (page, frame_page)) {
-      destroy_frame (frame_page);
+      destroy_frame (frame_page, true);
       return false;
     }
     writeable = page->file_info->file_writeable;
@@ -196,7 +196,7 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
 
   // Point the page table entry for the faulting virtual address to the physical page.
   if(!pagedir_set_page (pagedir, address, frame_page, writeable)) {
-    destroy_frame (frame_page);
+    destroy_frame (frame_page, true);
     return false;
   }
 
@@ -251,7 +251,7 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     }
 
     // clear the page mapping, and release the frame
-    destroy_frame (page->faddress);
+    destroy_frame (page->faddress, true);
     pagedir_clear_page (pagedir, page->address);
     }
     break;
@@ -316,7 +316,7 @@ static void supp_destroy_func (struct hash_elem *e, void *aux UNUSED)
   // Check the page_from and free based on the location
   if (page->page_from == FRAME)
   {
-    destroy_frame (page->faddress);
+    destroy_frame (page->faddress, false);
   }
   else if (page->page_from == EXECFILE)
   {

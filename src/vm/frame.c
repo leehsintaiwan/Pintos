@@ -58,7 +58,7 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
     page->swap_index = index;
     page->dirty_bit = page->dirty_bit || is_dirty;
 
-    destroy_frame(evicted_frame->frame_address);
+    destroy_frame(evicted_frame->frame_address, true);
     frame_address = palloc_get_page(PAL_USER | flag);
   }
 
@@ -72,14 +72,17 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 }
 
 /* Destroy a specified frame in frame table. */
-void destroy_frame (void *frame_address)
+void destroy_frame (void *frame_address, bool palloc_free)
 {
   lock_acquire (&frame_lock);
 
   struct frame *frame = lookup_frame (frame_address);
   hash_delete (&frame_table, &frame->hash_elem);
   list_remove(&frame->list_elem);
-  palloc_free_page (frame_address);
+  if (palloc_free)
+  {
+    palloc_free_page (frame_address);
+  }
   free (frame);
 
   lock_release (&frame_lock);
