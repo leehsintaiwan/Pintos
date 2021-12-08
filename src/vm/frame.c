@@ -9,7 +9,6 @@
 
 static hash_hash_func frame_hash_func;
 static hash_less_func frame_hash_less;
-static hash_action_func frame_destroy_func;
 static struct frame *lookup_frame(void *frame_address);
 static struct frame *evict_frame(uint32_t *pagedir);
 

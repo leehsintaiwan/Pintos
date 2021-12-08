@@ -716,7 +716,7 @@ setup_stack (void **esp)
       }
       else
       {
-        destroy_frame (kpage);
+        destroy_frame (kpage, true);
       }
     }
   
