@@ -35,6 +35,7 @@ void init_frames(void)
 void *get_new_frame(enum palloc_flags flag, void *page_address)
 {
   lock_acquire(&frame_lock);
+  printf("get new frame\n");
 
   struct frame *new_frame = malloc(sizeof(struct frame));
   new_frame->page_address = page_address;
@@ -43,6 +44,7 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 
   if (frame_address == NULL)
   {
+    printf("ft full\n");
     struct frame *evicted_frame = evict_frame(thread_current()->pagedir);
     pagedir_clear_page(evicted_frame->thread->pagedir, evicted_frame->page_address);
 
@@ -102,23 +104,37 @@ void set_used (void *frame_address, bool new_used)
 static struct frame *evict_frame(uint32_t *pagedir)
 {
   size_t size = list_size(&frame_list);
-
+  printf("size %d\n", size);
+  if (frame_pointer == NULL)
+  {
+    frame_pointer = list_begin(&frame_list);
+  }
   for (uint32_t i = 0; i < 2 * size; i++)
   {
-    if (frame_pointer == NULL || frame_pointer == list_end(&frame_list))
+    struct frame *frame = list_entry(frame_pointer, struct frame, list_elem);
+
+    if (frame_pointer == list_end(&frame_list))
     {
+      printf("beginning\n");
       frame_pointer = list_begin(&frame_list);
     }
     else
     {
+      printf("get next\n");
       frame_pointer = list_next(frame_pointer);
     }
 
-    struct frame *frame = list_entry(frame_pointer, struct frame, list_elem);
-    if (!pagedir_is_accessed(pagedir, frame->page_address) || !frame->used)
+    if (frame->used)
     {
+      printf("frame used\n");
+      continue;
+    }
+    if (!pagedir_is_accessed(pagedir, frame->page_address))
+    {
+      printf("return frame\n");
       return frame;
     }
+    printf("set accessed\n");
     pagedir_set_accessed(pagedir, frame->page_address, false);
   }
 
