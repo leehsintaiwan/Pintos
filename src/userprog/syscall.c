@@ -462,18 +462,18 @@ static void mmap (struct intr_frame *f)
 
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
-  struct file *reopened_file;
+  struct file *reopened_file = NULL;
   if (file_desc && file_desc->file) 
   {
     // Reopens the file so that it doesn't interfere with process to be stored in mmap_desc
     reopened_file = file_reopen (file_desc->file);
     
-    if (!reopened_file)
-    {
-      lock_release (&filesys_lock);
-      return_frame (f, -1);
-      return;
-    }
+  }
+  if (!reopened_file)
+  {
+    lock_release (&filesys_lock);
+    return_frame (f, -1);
+    return;
   }
 
   if ((int) addr % PGSIZE != 0) {
