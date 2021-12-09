@@ -658,35 +658,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
             page_read_bytes, page_zero_bytes, writable);
       }
       
-        
-      // /* Get a new page of memory. */
-      // kpage = get_new_frame (PAL_USER, upage);
-      // if (kpage == NULL){
-      //   return false;
-      // }
-      
-      //  /* Load data into the page. */
-      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      //   {
-      //     destroy_frame (kpage);
-      //     return false; 
-      //   }
-      
-      // /* Add the page to the process's address space. */
-      // if (!install_page (upage, kpage, writable)) 
-      // {
-      //   destroy_frame (kpage);
-      //   return false; 
-      // }        
-      
-
-      // // /* Load data into the page. */
-      // // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      // //   {
-      // //     destroy_frame (kpage);
-      // //     return false; 
-      // //   }
-      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -736,11 +707,15 @@ static bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();
-  // printf("install page\n");
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
-  return (pagedir_get_page (t->pagedir, upage) == NULL
+  bool success = (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable)
           && add_frame_supp_pt(t->supp_page_table, upage, kpage));
+  if (success)
+  {
+    set_used (kpage, false);
+  }
+  return success;
 }

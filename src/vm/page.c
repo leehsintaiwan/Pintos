@@ -14,7 +14,6 @@
 static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
 static hash_action_func supp_destroy_func;
-static bool load_page_of_file(struct page *page, void *faddress);
 
 
 /* Create supplemental page table */
@@ -134,14 +133,12 @@ struct page *find_page (struct supp_page_table *supp_page_table, void *page)
   temp_page.address = page;
 
   struct hash_elem *e = hash_find (&supp_page_table->page_table, &temp_page.elem);
-  if (e) 
-  {
-    return hash_entry (e, struct page, elem);
-  }
-  else
+  if (!e) 
   {
     return NULL;
   }
+
+  return hash_entry (e, struct page, elem);
 }
 
 /* Load page back on frame (into the memory). */
@@ -154,13 +151,13 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     return false;
   }
 
-  // Already loaded
+  // If the page has already been loaded it will be on FRAME
+  // Else the page will be put in a new frame
   if(page->page_from == FRAME) 
   {  
     return true;
   }
 
-  // Get new frame for page
   void *frame_page = get_new_frame(PAL_USER, address);
   if(!frame_page) {
     return false;
@@ -179,10 +176,17 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     break;
 
   case EXECFILE:
-    if (!load_page_of_file (page, frame_page)) {
+    file_seek (page->file_info->file, page->file_info->file_start_byte);
+
+    int bytes_read = file_read (page->file_info->file, frame_page, page->file_info->file_read_bytes);
+    if (bytes_read != (int) page->file_info->file_read_bytes)
+    {
       destroy_frame (frame_page, true);
       return false;
     }
+    // The rest of the bytes are set to 0.
+    memset (frame_page + bytes_read, 0, page->file_info->file_zero_bytes);
+
     writeable = page->file_info->file_writeable;
     break;
 
@@ -202,26 +206,12 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
 
   page->faddress = frame_page;
   page->page_from = FRAME;
-
+  set_used (frame_page, false);
   pagedir_set_dirty (pagedir, frame_page, false);
 
   return true;
 }
 
-/* Load the page of a file from filesys. */
-static bool load_page_of_file(struct page *page, void *faddress)
-{
-  file_seek (page->file_info->file, page->file_info->file_start_byte);
-
-  int bytes_read = file_read (page->file_info->file, faddress, page->file_info->file_read_bytes);
-  if (bytes_read != (int) page->file_info->file_read_bytes)
-  {
-    return false;
-  }
-  // The rest of the bytes are set to 0.
-  memset (faddress + bytes_read, 0, page->file_info->file_zero_bytes);
-  return true;
-}
 
 bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     void *addr, struct file *f, uint32_t offset, size_t bytes)
@@ -231,10 +221,9 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     PANIC ("munmap - page is missing");
   }
 
-  // Pin the associated frame if loade because page fault could occur while swapping in
-//  if (page->page_from == FRAME) {
-//    vm_frame_pin (page->faddress);
-//  }
+  if (page->page_from == FRAME) {
+    set_used (page->faddress, true);
+  }
 
   switch (page->page_from)
   {
@@ -296,10 +285,7 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
 static unsigned supp_hash_func(const struct hash_elem *elem, void *aux UNUSED)
 {
   struct page *page = hash_entry (elem, struct page, elem);
-  // printf("%d\n", page->address);
-  // printf("hash %d\n", hash_int(page->address));
   return hash_int((int) page->address);
-  // return hash_bytes(page->address, sizeof(page->address));
 }
 
 static bool supp_hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)

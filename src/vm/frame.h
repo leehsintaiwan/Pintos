@@ -14,10 +14,13 @@ struct frame
   struct hash_elem hash_elem;  /* Hash elem used in hash table */
   struct list_elem list_elem;  /* List elem used in frame_list */
   struct thread *thread;       /* Stores the thread that owns this frame */
+  bool used;                   /* Indicates that a frame is being used, 
+                                  to prevent it from being evicted */
 };
 
 void init_frames(void);
 void *get_new_frame(enum palloc_flags flag, void *page_address);
 void destroy_frame (void *frame_address, bool palloc_free);
+void set_used (void *frame_address, bool new_used);
 
 #endif /* vm/frame.h */

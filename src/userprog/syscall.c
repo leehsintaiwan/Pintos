@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "lib/kernel/stdio.h"
+#include "vm/frame.h"
 
 #define NUM_OF_SYSCALLS 13
 
@@ -253,7 +254,7 @@ static void read (struct intr_frame *f)
     exit_exception();
     return;
   }
-    
+  
 
   if (fd == STDIN_FILENO) 
   {
@@ -279,8 +280,37 @@ static void read (struct intr_frame *f)
       exit_exception ();
       return;
     }
+
+    if (f->esp - (void *) buffer > 32)
+    {
+      lock_release (&filesys_lock);
+      exit_exception ();
+      return;
+    }
+    
+    struct supp_page_table *spt = thread_current()->supp_page_table;
+    for(void *address = pg_round_down(buffer); 
+        address < buffer + size; 
+        address += PGSIZE)
+    {
+      load_page (spt, thread_current()->pagedir, address);
+      
+      struct page *page = find_page (spt, address);
+      set_used (page->faddress, true);
+    }
     
     num_bytes = file_read (file_desc->file, (void *) buffer, size);
+
+    for (void *address = pg_round_down(buffer);
+        address < buffer + size; 
+        address += PGSIZE)
+    {
+      struct page *page = find_page (spt, address);
+      if (page->page_from == FRAME)
+      {
+        set_used (page->faddress, false);
+      }
+    }
 
     lock_release (&filesys_lock);
   }
@@ -326,7 +356,31 @@ static void write (struct intr_frame *f)
     exit_exception ();
     return;
   }
+
+  struct supp_page_table *spt = thread_current()->supp_page_table;
+  for (void *address = pg_round_down(buffer); 
+      address < buffer + size; 
+      address += PGSIZE)
+  {
+    load_page (spt, thread_current()->pagedir, address);
+    
+    struct page *page = find_page (spt, address);
+    set_used (page->faddress, true);
+  }
+
   int bytes_written = file_write(file_desc->file, buffer, size);
+
+  for (void *address = pg_round_down(buffer);
+      address < buffer + size; 
+      address += PGSIZE)
+  {
+    struct page *page = find_page (spt, address);
+    if (page->page_from == FRAME)
+    {
+      set_used (page->faddress, false);
+    }
+  }
+
   lock_release(&filesys_lock);
   return_frame(f, bytes_written);
 }

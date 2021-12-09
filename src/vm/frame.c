@@ -63,6 +63,7 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 
   new_frame->frame_address = frame_address;
   new_frame->thread = thread_current();
+  new_frame->used = true;
   hash_insert(&frame_table, &new_frame->hash_elem);
   list_push_back(&frame_list, &new_frame->list_elem);
   
@@ -90,6 +91,13 @@ void destroy_frame (void *frame_address, bool palloc_free)
 
 /* Helper functions for frame table. */
 
+void set_used (void *frame_address, bool new_used)
+{
+  lock_acquire (&frame_lock);
+  lookup_frame (frame_address)->used = new_used;
+  lock_release (&frame_lock);
+}
+
 // Choose a frame to evict when frame table is full using the second chance algorithm.
 static struct frame *evict_frame(uint32_t *pagedir)
 {
@@ -107,7 +115,7 @@ static struct frame *evict_frame(uint32_t *pagedir)
     }
 
     struct frame *frame = list_entry(frame_pointer, struct frame, list_elem);
-    if (!pagedir_is_accessed(pagedir, frame->page_address))
+    if (!pagedir_is_accessed(pagedir, frame->page_address) || !frame->used)
     {
       return frame;
     }
