@@ -15,7 +15,6 @@ static hash_hash_func supp_hash_func;
 static hash_less_func supp_hash_less;
 static hash_action_func supp_destroy_func;
 
-
 /* Create supplemental page table */
 struct supp_page_table *init_supp_page_table (void)
 {
@@ -44,7 +43,6 @@ void destroy_supp_pt (struct supp_page_table *supp_page_table)
 /* Add a page to the supp_page_table with it's specified page_loc and file_info if page is from an EXECFILE. */ 
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info)
 {
-
   struct page *page = (struct page *) malloc(sizeof(struct page));
   // printf("add_supp_pt %d\n", from);
   if (!page)
@@ -80,7 +78,6 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
     hash_replace (&supp_page_table->page_table, &page->elem);
   }
   return true;
-
 }
 
 /* Add page with location FRAME to supplemental page table. */
@@ -159,7 +156,8 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
   }
 
   void *frame_page = get_new_frame(PAL_USER, address);
-  if(!frame_page) {
+  if(!frame_page) 
+  {
     return false;
   }
 
@@ -167,39 +165,40 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
   bool writeable = true;
   switch (page->page_from)
   {
-  case ZERO:
-    memset (frame_page, 0, PGSIZE);
-    break;
+    case ZERO:
+      memset (frame_page, 0, PGSIZE);
+      break;
 
-  case SWAP:
-    swap_read (page->swap_index, frame_page);
-    break;
+    case SWAP:
+      swap_read (page->swap_index, frame_page);
+      break;
 
-  case EXECFILE:
-    file_seek (page->file_info->file, page->file_info->file_start_byte);
+    case EXECFILE:
+      file_seek (page->file_info->file, page->file_info->file_start_byte);
 
-    int bytes_read = file_read (page->file_info->file, frame_page, page->file_info->file_read_bytes);
-    if (bytes_read != (int) page->file_info->file_read_bytes)
-    {
-      destroy_frame (frame_page, true);
-      return false;
-    }
-    // The rest of the bytes are set to 0.
-    memset (frame_page + bytes_read, 0, page->file_info->file_zero_bytes);
+      int bytes_read = file_read (page->file_info->file, frame_page, page->file_info->file_read_bytes);
+      if (bytes_read != (int) page->file_info->file_read_bytes)
+      {
+        destroy_frame (frame_page, true);
+        return false;
+      }
+      // The rest of the bytes are set to 0.
+      memset (frame_page + bytes_read, 0, page->file_info->file_zero_bytes);
 
-    writeable = page->file_info->file_writeable;
-    break;
+      writeable = page->file_info->file_writeable;
+      break;
 
-  case FRAME:
-    PANIC ("This type should not be reached.");
-    break;
+    case FRAME:
+      PANIC ("This type should not be reached.");
+      break;
 
-  default:
-    PANIC ("Page type does not exist.");
+    default:
+      PANIC ("Page type does not exist.");
   }
 
   // Point the page table entry for the faulting virtual address to the physical page.
-  if(!pagedir_set_page (pagedir, address, frame_page, writeable)) {
+  if(!pagedir_set_page (pagedir, address, frame_page, writeable)) 
+  {
     destroy_frame (frame_page, true);
     return false;
   }
@@ -217,35 +216,37 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     void *addr, struct file *f, uint32_t offset, size_t bytes)
 {
   struct page *page = find_page (supp_page_table, addr);
-  if (page == NULL) {
+  if (page == NULL) 
+  {
     PANIC ("munmap - page is missing");
   }
 
-  if (page->page_from == FRAME) {
+  if (page->page_from == FRAME) 
+  {
     set_used (page->faddress, true);
   }
 
   switch (page->page_from)
   {
-  case FRAME:
+    case FRAME:
     {
-    // Dirty frame handling (write into file)
-    // Check if the address or mapped frame is dirty. If so, write to file.
-    bool is_dirty = page->dirty_bit;
-    is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
-    is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->faddress);
-    if (is_dirty) 
-    {
-      file_write_at (f, page->address, bytes, offset);
-    }
+      // Dirty frame handling (write into file)
+      // Check if the address or mapped frame is dirty. If so, write to file.
+      bool is_dirty = page->dirty_bit;
+      is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
+      is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->faddress);
+      if (is_dirty) 
+      {
+        file_write_at (f, page->address, bytes, offset);
+      }
 
-    // clear the page mapping, and release the frame
-    destroy_frame (page->faddress, true);
-    pagedir_clear_page (pagedir, page->address);
+      // clear the page mapping, and release the frame
+      destroy_frame (page->faddress, true);
+      pagedir_clear_page (pagedir, page->address);
     }
-    break;
+      break;
 
-  case SWAP:
+    case SWAP:
     {
       bool is_dirty = page->dirty_bit;
       is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
@@ -263,15 +264,15 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
         free_swap (page->swap_index);
       }
     }
-    break;
+      break;
 
-  case EXECFILE:
-    // do nothing.
-    break;
+    case EXECFILE:
+      // do nothing.
+      break;
 
-  default:
-    // Impossible, such as ALL_ZERO
-    PANIC ("unreachable state");
+    default:
+      // Impossible, such as ALL_ZERO
+      PANIC ("unreachable state");
   }
 
   // the supplemental page table entry is also removed.
