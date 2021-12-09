@@ -30,7 +30,7 @@ struct page
   void *address; /* Virtual address of the page. */
   void *faddress; /* Frame address of the page (location in the kernel). */
   enum page_loc page_from; /* Where the page is from */
-  bool dirty_bit;
+  bool dirty_bit; /* Whether the page contains a dirty bit */
 
   // When page loc is SWAP
   uint32_t swap_index; /* swap index of page in swap table */
