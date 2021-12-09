@@ -73,7 +73,7 @@ uint32_t swap_write (void *page)
   }
 
   // Write the content into the swap slot  
-  for (int i = 0; i < SECTORS_PER_PAGE; ++ i) 
+  for (int i = 0; i < SECTORS_PER_PAGE; i++) 
   {
     block_write(block_swap, swap_index * SECTORS_PER_PAGE + i, page + BLOCK_SECTOR_SIZE * i);
   }
