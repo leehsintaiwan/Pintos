@@ -230,8 +230,7 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
   {
     case FRAME:
     {
-      // Dirty frame handling (write into file)
-      // Check if the address or mapped frame is dirty. If so, write to file.
+      // if address or mapped frame is dirty, write to file
       bool is_dirty = page->dirty_bit;
       is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
       is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->faddress);
@@ -240,7 +239,7 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
         file_write_at (f, page->address, bytes, offset);
       }
 
-      // clear the page mapping, and release the frame
+      // destroy frame and clear page mapping
       destroy_frame (page->faddress, true);
       pagedir_clear_page (pagedir, page->address);
     }
@@ -252,31 +251,27 @@ bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
       is_dirty = is_dirty || pagedir_is_dirty(pagedir, page->address);
       if (is_dirty) 
       {
-        // load from swap, and write back to file
-        void *temp_page = palloc_get_page(0); // in the kernel
+        // load from swap and write back to file
+        void *temp_page = palloc_get_page(0);
         swap_read (page->swap_index, temp_page);
         file_write_at (f, temp_page, PGSIZE, offset);
         palloc_free_page (temp_page);
       }
       else 
       {
-        // just throw away the swap.
         free_swap (page->swap_index);
       }
     }
       break;
 
     case EXECFILE:
-      // do nothing.
       break;
 
     default:
-      // Impossible, such as ALL_ZERO
       PANIC ("unreachable state");
   }
 
-  // the supplemental page table entry is also removed.
-  // so that the unmapped memory is unreachable. Later access will fault.
+  // remove supplementary page table so unmapped memory is unreachable
   hash_delete(&supp_page_table->page_table, &page->elem);
   return true;
 }
