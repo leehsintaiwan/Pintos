@@ -5,9 +5,9 @@
 #include <bitmap.h>
 #include <stdio.h>
 
-#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE)
+#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE) // Number of sectors an individual page takes up in block_swap
 
-static struct block *block_swap;
+static struct block *block_swap; // A block where all pages in the swap table are written to, read from, and freed
 static struct bitmap *swap_bitmap; // Bitmap for checking availiable swap slots
 static size_t swap_table_size; // The size of the swap table (number of swap slots)
 struct lock swap_lock; // Swap table lock to prevent race conditions
