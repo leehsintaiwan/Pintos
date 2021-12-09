@@ -2,6 +2,7 @@
 #include "devices/block.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "userprog/syscall.h"
 #include <bitmap.h>
 #include <stdio.h>
 
