@@ -33,6 +33,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 >> supplemental page table and frame table. 
 >> Identify the purpose of each in roughly 25 words.
 
+// Struct for a frame, containing all necessary information about that frame
 struct frame
 {
   void *frame_address;         /* Frame address allocated using palloc */
@@ -40,53 +41,57 @@ struct frame
   struct hash_elem hash_elem;  /* Hash elem used in hash table */
   struct list_elem list_elem;  /* List elem used in frame_list */
   struct thread *thread;       /* Stores the thread that owns this frame */
+  bool used;                   /* Indicates that a frame is being used, 
+                                  to prevent it from being evicted */
 };
 
 // Frame table stored as a hash table
 static struct hash frame_table;
 
-// Frame lock to be acquried when accessing frame table to avoid race conditions
+// Frame lock to be acquired when accessing frame table to avoid race conditions
 static struct lock frame_lock;
 
 // Frame list for looping through frames in round of robin to find next victim
 static struct list frame_list;
-static struct list_elem *frame_pointer;
-
+static struct list_elem *frame_pointer; // pointer to elem in frame_list
 
 /* The different locations/states
    the page can be in. */
-enum page_loc {
+enum page_loc 
+{
   FRAME, /* In memory. */
   ZERO, /* Zeros. */
   SWAP, /* In swap slot. */
   EXECFILE /* In filesys/executable. */
 };
 
-
-struct supp_page_table {
-    /* Map from page to the supplemental page table entry. */
-    struct hash page_table;
+// Struct for the supplemental page table
+struct supp_page_table 
+{
+  /* Map from page to the supplemental page table entry. */
+  struct hash page_table;
 };
 
 /* A page is an entry of the supp_page_table. */
-struct page {
-    void *address; /* Virtual address of the page. */
-    void *faddress; /* Frame address of the page (location in the kernel). */
-    enum page_loc page_from;
+struct page 
+{
+  void *address; /* Virtual address of the page. */
+  void *faddress; /* Frame address of the page (location in the kernel). */
+  enum page_loc page_from; /* Where the page is from */
+  bool dirty_bit;
 
+  // When page loc is SWAP
+  uint32_t swap_index; /* swap index of page in swap table */
 
-    bool dirty_bit;
+  // When page loc is FILE
+  struct file_struct *file_info;
 
-    // When page loc is SWAP
-    uint32_t swap_index;
-
-    // When page loc is FILE
-    struct file_struct *file_info;
-
-    struct hash_elem elem; 
+  struct hash_elem elem; 
 };
 
-struct file_struct {
+/* Struct for a file, containing all necessary information for that file */
+struct file_struct 
+{
   struct file *file; /* Executable file. */
   int32_t file_start_byte; /*  Offset in the file to start read. */
   size_t file_read_bytes; /* Number of bytes to read. */
@@ -142,10 +147,14 @@ from using a list.
 >> swap table.  
 >> Identify the purpose of each in roughly 25 words.
 
-#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE)
-static struct block *block_swap;
+#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE) // Number of sectors an individual page takes up in block_swap
+
+static struct block *block_swap; // A block where all pages in the swap table are written to, read from, and freed
+
 static struct bitmap *swap_bitmap; // Bitmap for checking availiable swap slots
+
 static size_t swap_table_size; // The size of the swap table (number of swap slots)
+
 struct lock swap_lock; // Swap table lock to prevent race conditions
 
 ---- ALGORITHMS ----
