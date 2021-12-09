@@ -186,6 +186,13 @@ before we free the frame from our frame table.
 >> Explain how your synchronization design prevents deadlock.  
 >> (You may want to refer to the necessary conditions for deadlock.)
 
+In order to have a deadlock, two threads would need to acquire two locks in opposite order.
+We only have a frame lock which gets acquired when a frame table is accessed,
+and a swap lock which is acquired when the swap table is accessed.
+Our swap functions are only called within the evict_frame function, therefore the
+frame lock would always be acquired before the swap lock. Thus, the order that
+the two locks are acquired are always in order, preventing a deadlock.
+
 >> B5: (2 marks) ******************************************************************************************************************************************
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you ensure that Q cannot access or modify the page during the 
