@@ -441,7 +441,7 @@ static void close (struct intr_frame *f)
 
 /* System Calls for memory mapping*/
 
-/* Maps file open as fd into process' virtual address space*/
+/* Maps file open as fd into process' virtual address space */
 static void mmap (struct intr_frame *f)
 {
   int fd = get_num (f->esp + 4);
@@ -463,10 +463,9 @@ static void mmap (struct intr_frame *f)
   lock_acquire (&filesys_lock);
   struct fd *file_desc = find_fd (thread_current(), fd);
   struct file *reopened_file;
-  if( file_desc && file_desc->file) 
+  if (file_desc && file_desc->file) 
   {
-    // reopen file so that it doesn't interfere with process itself
-    // it will be store in the mmap_desc struct (later closed on munmap)
+    // Reopens the file so that it doesn't interfere with process to be stored in mmap_desc
     reopened_file = file_reopen (file_desc->file);
     
     if (!reopened_file)
@@ -517,7 +516,7 @@ static void mmap (struct intr_frame *f)
     add_file_supp_pt (thread_current()->supp_page_table, map_addr, reopened_file, offset, read_bytes, zero_bytes, true);
   }
 
-  /* ASSIGN MAPPING ID HERE */
+  /* Assigning mapping id */
   mapid_t mapping_id;
   if (!list_empty (&thread_current()->mmap_list))
   {
@@ -547,7 +546,6 @@ static void sys_munmap (struct intr_frame *f)
 
 bool munmap (mapid_t mapping_id)
 {
-  // printf("munmap\n");
   struct md *mmap_desc = find_md (thread_current(), mapping_id);
 
   if (mmap_desc == NULL)
@@ -569,7 +567,6 @@ bool munmap (mapid_t mapping_id)
   list_remove (&mmap_desc->elem);
   file_close (mmap_desc->file);
   free (mmap_desc);
-
   lock_release (&filesys_lock);
   return true;
 }
