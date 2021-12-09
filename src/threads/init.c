@@ -135,7 +135,7 @@ main (void)
   locate_block_devices ();
   filesys_init (format_filesys);
 #endif
-
+  swap_init();
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */

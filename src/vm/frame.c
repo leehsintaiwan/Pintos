@@ -74,7 +74,7 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 /* Destroy a specified frame in frame table. */
 void destroy_frame (void *frame_address, bool palloc_free)
 {
-  lock_acquire (&frame_lock);
+  // lock_acquire (&frame_lock);
 
   struct frame *frame = lookup_frame (frame_address);
   hash_delete (&frame_table, &frame->hash_elem);
@@ -85,7 +85,7 @@ void destroy_frame (void *frame_address, bool palloc_free)
   }
   free (frame);
 
-  lock_release (&frame_lock);
+  // lock_release (&frame_lock);
 }
 
 
