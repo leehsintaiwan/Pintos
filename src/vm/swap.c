@@ -68,7 +68,7 @@ uint32_t swap_write (void *page)
   if (swap_index == BITMAP_ERROR) 
   {
     lock_release(&swap_lock);
-    PANIC ("Swap table full");
+    exit_exception();
     return swap_index;
   }
 
@@ -88,7 +88,6 @@ void free_swap (uint32_t swap_index)
 {
   // Assert that the swap index is valid
   ASSERT (swap_index < swap_table_size);
-
   // Assert that the swap slot is not empty  
   if (bitmap_test(swap_bitmap, swap_index)) 
   {

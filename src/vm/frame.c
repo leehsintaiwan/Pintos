@@ -35,7 +35,6 @@ void init_frames(void)
 void *get_new_frame(enum palloc_flags flag, void *page_address)
 {
   lock_acquire(&frame_lock);
-  printf("get new frame\n");
 
   struct frame *new_frame = malloc(sizeof(struct frame));
   new_frame->page_address = page_address;
@@ -44,7 +43,6 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 
   if (frame_address == NULL)
   {
-    printf("ft full\n");
     struct frame *evicted_frame = evict_frame(thread_current()->pagedir);
     pagedir_clear_page(evicted_frame->thread->pagedir, evicted_frame->page_address);
 
@@ -76,8 +74,12 @@ void *get_new_frame(enum palloc_flags flag, void *page_address)
 /* Destroy a specified frame in frame table. */
 void destroy_frame (void *frame_address, bool palloc_free)
 {
-  // lock_acquire (&frame_lock);
-
+  bool lock_set_by_func = false;
+  if (!lock_held_by_current_thread(&frame_lock))
+  {
+    lock_acquire (&frame_lock);
+    lock_set_by_func = true;
+  }
   struct frame *frame = lookup_frame (frame_address);
   hash_delete (&frame_table, &frame->hash_elem);
   list_remove(&frame->list_elem);
@@ -87,7 +89,10 @@ void destroy_frame (void *frame_address, bool palloc_free)
   }
   free (frame);
 
-  // lock_release (&frame_lock);
+  if (lock_set_by_func)
+  {
+    lock_release (&frame_lock);
+  }
 }
 
 
@@ -104,7 +109,7 @@ void set_used (void *frame_address, bool new_used)
 static struct frame *evict_frame(uint32_t *pagedir)
 {
   size_t size = list_size(&frame_list);
-  printf("size %d\n", size);
+
   if (frame_pointer == NULL)
   {
     frame_pointer = list_begin(&frame_list);
@@ -115,26 +120,21 @@ static struct frame *evict_frame(uint32_t *pagedir)
 
     if (frame_pointer == list_end(&frame_list))
     {
-      printf("beginning\n");
       frame_pointer = list_begin(&frame_list);
     }
     else
     {
-      printf("get next\n");
       frame_pointer = list_next(frame_pointer);
     }
 
     if (frame->used)
     {
-      printf("frame used\n");
       continue;
     }
     if (!pagedir_is_accessed(pagedir, frame->page_address))
     {
-      printf("return frame\n");
       return frame;
     }
-    printf("set accessed\n");
     pagedir_set_accessed(pagedir, frame->page_address, false);
   }
 
