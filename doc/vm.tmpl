@@ -159,14 +159,26 @@ struct lock swap_lock; // Swap table lock to prevent race conditions
 
 ---- ALGORITHMS ----
 
->> B2: (2 marks) ******************************************************************************************************************************************
+>> B2: (2 marks)
 >> When a frame is required but none is free, some frame must be evicted.
 >> Describe your code for choosing a frame to evict.
 
->> B3: (2 marks) ******************************************************************************************************************************************
+We keep track of the frames we have in the frame table using a circular list.
+We also keep track of a frame pointer to point to the next possible victim we could evict.
+The evict_frame function uses the second chance algorithm. It goes through the
+list in a loop and finds the first frame that has not been accessed.
+If a frame is accessed then we set it to not accessed, and increment the pointer
+to point to the next frame in the list.
+
+>> B3: (2 marks)
 >> When a process P obtains a frame that was previously used by a process Q,
 >> how do you adjust the page directory of process Q (and any other data 
 >> structures) to reflect the frame Q no longer has?
+
+We first call pagedir_clear_page on the evicted page to remove the frame from its page table.
+Then we store the swap status and swap index in the page struct associated to the evicted frame.
+We also copy over the dirty bit and set frame address to NULL for that page struct
+before we free the frame from our frame table.
 
 ---- SYNCHRONIZATION ----
 
