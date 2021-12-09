@@ -141,7 +141,6 @@ struct page *find_page (struct supp_page_table *supp_page_table, void *page)
 /* Load page back on frame (into the memory). */
 bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address)
 {
-
   struct page *page = find_page(supp_page_table, address);
   if(!page) 
   {

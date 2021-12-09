@@ -65,6 +65,7 @@ uint32_t swap_write (void *page)
   */
   uint32_t swap_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, true);
 
+  // If swap table is full
   if (swap_index == BITMAP_ERROR) 
   {
     lock_release(&swap_lock);
