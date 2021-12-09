@@ -27,7 +27,7 @@ Joel Chu <joel.chu20@imperial.ac.uk>
 
 ---- DATA STRUCTURES ----
 
->> A1: (2 marks) ******************************************************************************************************************************************
+>> A1: (2 marks)
 >> Copy here the declaration of each new or changed `struct' or `struct' member,
 >> global or static variable, `typedef', or enumeration that relates to your 
 >> supplemental page table and frame table. 
@@ -78,7 +78,7 @@ struct page
   void *address; /* Virtual address of the page. */
   void *faddress; /* Frame address of the page (location in the kernel). */
   enum page_loc page_from; /* Where the page is from */
-  bool dirty_bit;
+  bool dirty_bit; /* Whether the page contains a dirty bit */
 
   // When page loc is SWAP
   uint32_t swap_index; /* swap index of page in swap table */
@@ -141,7 +141,7 @@ from using a list.
 
 ---- DATA STRUCTURES ----
 
->> B1: (1 mark) ******************************************************************************************************************************************
+>> B1: (1 mark)
 >> Copy here the declaration of each new or changed `struct' or `struct' member,
 >> global or static variable, `typedef', or enumeration that relates to your 
 >> swap table.  
