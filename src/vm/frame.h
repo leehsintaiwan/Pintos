@@ -7,6 +7,7 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 
+// Struct for a frame, containing all necessary information about that frame
 struct frame
 {
   void *frame_address;         /* Frame address allocated using palloc */

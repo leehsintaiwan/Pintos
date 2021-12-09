@@ -29,11 +29,11 @@ struct page
 {
   void *address; /* Virtual address of the page. */
   void *faddress; /* Frame address of the page (location in the kernel). */
-  enum page_loc page_from;
+  enum page_loc page_from; /* Where the page is from */
   bool dirty_bit;
 
   // When page loc is SWAP
-  uint32_t swap_index;
+  uint32_t swap_index; /* swap index of page in swap table */
 
   // When page loc is FILE
   struct file_struct *file_info;
@@ -41,6 +41,7 @@ struct page
   struct hash_elem elem; 
 };
 
+/* Struct for a file, containing all necessary information for that file */
 struct file_struct 
 {
   struct file *file; /* Executable file. */
