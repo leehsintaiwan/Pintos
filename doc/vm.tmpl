@@ -226,11 +226,18 @@ Therefore, only one process can access the swap table at once avoiding race cond
 
 ---- RATIONALE ----
 
->> B8: (2 marks) ******************************************************************************************************************************************
+>> B8: (2 marks)
 >> There is an obvious trade-off between parallelism and the complexity of your
 >> synchronisation methods. 
 >> Explain where your design falls along this continuum and why you chose to 
 >> design it this way.
+
+Our design falls closer to a simpler design in terms of synchronisation methods
+as we only have two global locks one for the frame table, one for the swap table.
+We chose to have this design because we wanted to ensure there are no two processes
+that access or modify the frame table or swap table at the same time.
+By using fewer locks, we can ensure that the locks are always acquired in the same
+order, therefore avoiding any deadlocks.
 
              MEMORY MAPPED FILES
              ===================
