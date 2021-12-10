@@ -6,6 +6,7 @@
 #include "threads/palloc.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
+#include "vm/page.h"
 
 // Struct for a frame, containing all necessary information about that frame
 struct frame
@@ -15,6 +16,8 @@ struct frame
   struct hash_elem hash_elem;  /* Hash elem used in hash table */
   struct list_elem list_elem;  /* List elem used in frame_list */
   struct thread *thread;       /* Stores the thread that owns this frame */
+  struct file_struct *file;    /* File that if read-only can be used for sharing */
+  uint32_t num_shared_pages;   /* Number of pages shared between other processes */
   bool used;                   /* Indicates that a frame is being used, 
                                   to prevent it from being evicted */
 };

@@ -178,12 +178,9 @@ bool load_page (struct page *page, uint32_t *pagedir, void *address)
       writeable = page->file_info->file_writeable;
       break;
 
-    case FRAME:
-      PANIC ("This type should not be reached.");
-      break;
-
     default:
-      PANIC ("Page type does not exist.");
+      PANIC ("Page type invalid or does not exist.");
+      return false;
   }
 
   // Point the page table entry for the faulting virtual address to the physical page.
