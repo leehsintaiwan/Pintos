@@ -116,12 +116,13 @@ This enumerated type is stored as a member of the struct (page_from), and so bas
 member access operators to get the relevant piece of data. For example, if page_from is FRAME then we can
 get access the faddress member in the page struct. We also store the files and swap index.
 
->> A3: (2 marks) ******************************************************************************************************************************************
+>> A3: (2 marks)
 >> How have you implemented sharing of read only pages?
 In our frame struct we included a file_struct pointer (*file) and a variable counting the number of pages shared between processes (num_shared_pages).
 When we add a frame to the frame table we give the frame the pointer to the relevant file_struct. Whenever we want to load a page (which is in the file system) back on frame,
 we iterate through the frame table and check if the file stored in the page struct matches with a file in a frame table entry. If so, and the file is read-only, then we set the page's
-faddress to the frame's address, and increment the num_shared_pages of the frame.
+faddress to the frame's address, and increment the num_shared_pages of the frame. When a process requests to destroy a frame, the num_shared_pages field of that frame decrements,
+but the frame is only destroyed if it isn't sharing with any processes.
 
 ---- SYNCHRONIZATION ----
 
