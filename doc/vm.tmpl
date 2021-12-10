@@ -299,3 +299,7 @@ overlap with an existing set of mapped pages so we release the lock and release 
 >> Mappings created with "mmap" have similar semantics to those of data 
 >> demand-paged from executables. 
 >> How does your code-base take advantage of this?
+
+Our implementation treats mmap as an EXECFILE location type when faulting the page. 
+This allows us to reuse the functions and implementation for EXECFILE as mmap also has to store
+a file, similar to EXECFILE.
