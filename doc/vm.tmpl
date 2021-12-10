@@ -201,7 +201,7 @@ Our swap functions are only called within the evict_frame function, therefore th
 frame lock would always be acquired before the swap lock. Thus, the order that
 the two locks are acquired are always in order, preventing a deadlock.
 
->> B5: (2 marks) ******************************************************************************************************************************************
+>> B5: (2 marks) *****************************************************************************************************************************************
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you ensure that Q cannot access or modify the page during the 
 >> eviction process?
@@ -211,9 +211,18 @@ the two locks are acquired are always in order, preventing a deadlock.
 >> How do you avoid a race between P evicting Q's frame and Q faulting the page
 >> back in?
 
->> B7: (2 marks) ******************************************************************************************************************************************
+>> B7: (2 marks) 
 >> Explain how you handle access to user pages that are not present when a
 >> system call is made.
+
+We have a 'used' member in the frame struct to ensure that before the read and write 
+system calls the frames are set to being 'used' meaning that they cannot be evicted and so
+will always be present when these read and write system calls are being made.
+For all of the other system calls, if the user page is not present then they will
+cause a page fault which will then load the page in using the load_page function.
+The page fault handler looks up pages which are not present the supplementary page in 
+the thread's page table and based on the page_from member of the page struct
+it allocates a frame and assigns the appropriate data to it, as with user programs.
 
 ---- RATIONALE ----
 
