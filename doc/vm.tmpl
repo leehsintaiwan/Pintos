@@ -107,8 +107,14 @@ struct file_struct
 >> Describe your code for finding the frame (if any) or other location that 
 >> contains the data of a given page.
 
-We use a struct page to keep track of the frame address for that particular page.
-So we can just return the frame address stored in the struct.
+We use a struct to store pages and it's data.
+We store these page strucs in a hash map and so use the hash_find function in find_page() to get the page struct based on
+the address of the page (the page address is used for the hashing).
+This hash map is stored as a member of the supp_page_table struct.
+To get the data based on location, we use an enumerated type page_loc which stores the location of the page.
+This enumerated type is stored as a member of the struct (page_from), and so based on this we can use 
+member access operators to get the relevant piece of data. For example, if page_from is FRAME then we can
+get access the fadress member in the page struct. We also store the files and swap index.
 
 >> A3: (2 marks) ******************************************************************************************************************************************
 >> How have you implemented sharing of read only pages?
@@ -133,7 +139,7 @@ Even if there are no free frames in the table, when we evict a frame we still lo
 >> supplemental page table and frame table?
 
 We chose to implement our supplemental page table and frame table by using a hash table,
-because hash tables support efficient lookup, insertion and deletion.
+because hash tables support efficient lookup, insertion and deletion (O(1)).
 Frequent adding and deleting a page and frame is necessary therefore we refrained
 from using a list.
 
