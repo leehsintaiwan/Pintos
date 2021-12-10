@@ -114,10 +114,12 @@ This hash map is stored as a member of the supp_page_table struct.
 To get the data based on location, we use an enumerated type page_loc which stores the location of the page.
 This enumerated type is stored as a member of the struct (page_from), and so based on this we can use 
 member access operators to get the relevant piece of data. For example, if page_from is FRAME then we can
-get access the fadress member in the page struct. We also store the files and swap index.
+get access the faddress member in the page struct. We also store the files and swap index.
 
 >> A3: (2 marks) ******************************************************************************************************************************************
 >> How have you implemented sharing of read only pages?
+In our frame struct we included a file_struct pointer (*file) and a variable counting the number of pages shared between processes (num_shared_pages).
+
 
 ---- SYNCHRONIZATION ----
 
