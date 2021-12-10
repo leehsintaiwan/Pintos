@@ -209,6 +209,11 @@ the frame table at once.
 >> How do you avoid a race between P evicting Q's frame and Q faulting the page
 >> back in?
 
+When eviction happens, a global swap lock must acquired before writing the
+evicted frame into the swap table. Also anytime a page fault requires a frame on
+the swap table to be loaded back in, the global swap lock also needs to be acquired.
+Therefore, only one process can access the swap table at once avoiding race conditions.
+
 >> B7: (2 marks) ******************************************************************************************************************************************
 >> Explain how you handle access to user pages that are not present when a
 >> system call is made.
