@@ -33,7 +33,7 @@ void init_frames(void)
 }
 
 // Get new frame by calling palloc, and add frame to frame table
-void *get_new_frame(enum palloc_flags flag, struct file_struct *file, void *page_address)
+void *get_new_frame(enum palloc_flags flag, void *page_address)
 {
   lock_acquire(&frame_lock);
 
@@ -65,8 +65,8 @@ void *get_new_frame(enum palloc_flags flag, struct file_struct *file, void *page
   new_frame->frame_address = frame_address;
   new_frame->thread = thread_current();
   new_frame->used = true;
-  new_frame->file_info = file;
-  new_frame->num_shared_pages = 1;
+  // new_frame->file_info = file; /* for our attempt at sharing we passed in a (file_struct *file) to get_new_frame */
+  // new_frame->num_shared_pages = 1;
 
   hash_insert(&frame_table, &new_frame->hash_elem);
   list_push_back(&frame_list, &new_frame->list_elem);
@@ -86,17 +86,17 @@ void destroy_frame (void *frame_address, bool palloc_free)
   }
   struct frame *frame = lookup_frame (frame_address);
 
-  frame->num_shared_pages--;
-  if (frame->num_shared_pages <= 0) 
+  // frame->num_shared_pages--;
+  // if (frame->num_shared_pages <= 0) 
+  // {
+  hash_delete (&frame_table, &frame->hash_elem);
+  list_remove(&frame->list_elem);
+  if (palloc_free)
   {
-    hash_delete (&frame_table, &frame->hash_elem);
-    list_remove(&frame->list_elem);
-    if (palloc_free)
-    {
-      palloc_free_page (frame_address);
-    }
-    free (frame);
+    palloc_free_page (frame_address);
   }
+  free (frame);
+  // }
 
   if (lock_set_by_func)
   {
