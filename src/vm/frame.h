@@ -26,7 +26,7 @@ struct frame
 };
 
 void init_frames(void);
-void *get_new_frame(enum palloc_flags flag, void *page_address);
+void *get_new_frame(enum palloc_flags flag, struct file_struct *file, void *page_address);
 void destroy_frame (void *frame_address, bool palloc_free);
 void set_used (void *frame_address, bool new_used);
 

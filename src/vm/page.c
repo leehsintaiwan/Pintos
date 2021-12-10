@@ -145,7 +145,7 @@ bool load_page (struct page *page, uint32_t *pagedir, void *address)
     return true;
   }
 
-  // File sharing
+  // Sharing read-only files
   if(page->page_from == EXECFILE && !page->file_info->file_writeable)
   {
     struct hash_iterator frame_iterator;
@@ -157,6 +157,7 @@ bool load_page (struct page *page, uint32_t *pagedir, void *address)
       // Obtain next frame from frame table
       struct frame *frame = hash_entry (hash_cur (&frame_iterator), struct frame, hash_elem);
 
+      // If file in frame matches our file in page, share file
       if (frame->file_info->file == page->file_info->file)
         {
           found_match = true;
@@ -166,7 +167,7 @@ bool load_page (struct page *page, uint32_t *pagedir, void *address)
     }
   }
 
-  void *frame_page = get_new_frame(PAL_USER, address);
+  void *frame_page = get_new_frame(PAL_USER, page->file_info, address);
   if(!frame_page) 
   {
     return false;
