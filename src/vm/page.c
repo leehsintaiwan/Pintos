@@ -145,6 +145,27 @@ bool load_page (struct page *page, uint32_t *pagedir, void *address)
     return true;
   }
 
+  // File sharing
+  if(page->page_from == EXECFILE && !page->file_info->file_writeable)
+  {
+    struct hash_iterator frame_iterator;
+    hash_first (&frame_iterator, &frame_table);
+    bool found_match = false;
+
+    while (!found_match && hash_next (&frame_iterator))
+    {
+      // Obtain next frame from frame table
+      struct frame *frame = hash_entry (hash_cur (&frame_iterator), struct frame, hash_elem);
+
+      if (frame->file_info->file == page->file_info->file)
+        {
+          found_match = true;
+          frame->num_shared_pages++;
+          page->faddress = frame->frame_address;
+        }
+    }
+  }
+
   void *frame_page = get_new_frame(PAL_USER, address);
   if(!frame_page) 
   {

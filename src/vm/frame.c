@@ -13,7 +13,7 @@ static struct frame *lookup_frame(void *frame_address);
 static struct frame *evict_frame(uint32_t *pagedir);
 
 // Frame table stored as a hash table
-static struct hash frame_table;
+struct hash frame_table;
 
 // Frame lock to be acquried when accessing frame table to avoid race conditions
 static struct lock frame_lock;

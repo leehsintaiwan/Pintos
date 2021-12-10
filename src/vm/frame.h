@@ -8,18 +8,21 @@
 #include "threads/synch.h"
 #include "vm/page.h"
 
+// Frame table stored as a hash table
+struct hash frame_table;
+
 // Struct for a frame, containing all necessary information about that frame
 struct frame
 {
-  void *frame_address;         /* Frame address allocated using palloc */
-  void *page_address;          /* User page address that's using this frame */
-  struct hash_elem hash_elem;  /* Hash elem used in hash table */
-  struct list_elem list_elem;  /* List elem used in frame_list */
-  struct thread *thread;       /* Stores the thread that owns this frame */
-  struct file_struct *file;    /* File that if read-only can be used for sharing */
-  uint32_t num_shared_pages;   /* Number of pages shared between other processes */
-  bool used;                   /* Indicates that a frame is being used, 
-                                  to prevent it from being evicted */
+  void *frame_address;              /* Frame address allocated using palloc */
+  void *page_address;               /* User page address that's using this frame */
+  struct hash_elem hash_elem;       /* Hash elem used in hash table */
+  struct list_elem list_elem;       /* List elem used in frame_list */
+  struct thread *thread;            /* Stores the thread that owns this frame */
+  struct file_struct *file_info;    /* File that if read-only can be used for sharing */
+  uint32_t num_shared_pages;        /* Number of pages shared between other processes */
+  bool used;                        /* Indicates that a frame is being used, 
+                                       to prevent it from being evicted */
 };
 
 void init_frames(void);
