@@ -205,15 +205,24 @@ Our swap functions are only called within the evict_frame function, therefore th
 frame lock would always be acquired before the swap lock. Thus, the order that
 the two locks are acquired are always in order, preventing a deadlock.
 
->> B5: (2 marks) ******************************************************************************************************************************************
+>> B5: (2 marks)
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you ensure that Q cannot access or modify the page during the 
 >> eviction process?
 
->> B6: (2 marks) ******************************************************************************************************************************************
+Any page that wants to access any frame on the frame table would need to acquire
+a global frame table lock first. This ensures that only one process can access
+the frame table at once.
+
+>> B6: (2 marks)
 >> A page fault in process P can cause another process Q's frame to be evicted.
 >> How do you avoid a race between P evicting Q's frame and Q faulting the page
 >> back in?
+
+When eviction happens, a global swap lock must acquired before writing the
+evicted frame into the swap table. Also anytime a page fault requires a frame on
+the swap table to be loaded back in, the global swap lock also needs to be acquired.
+Therefore, only one process can access the swap table at once avoiding race conditions.
 
 >> B7: (2 marks) ******************************************************************************************************************************************
 >> Explain how you handle access to user pages that are not present when a
@@ -221,11 +230,18 @@ the two locks are acquired are always in order, preventing a deadlock.
 
 ---- RATIONALE ----
 
->> B8: (2 marks) ******************************************************************************************************************************************
+>> B8: (2 marks)
 >> There is an obvious trade-off between parallelism and the complexity of your
 >> synchronisation methods. 
 >> Explain where your design falls along this continuum and why you chose to 
 >> design it this way.
+
+Our design falls closer to a simpler design in terms of synchronisation methods
+as we only have two global locks one for the frame table, one for the swap table.
+We chose to have this design because we wanted to ensure there are no two processes
+that access or modify the frame table or swap table at the same time.
+By using fewer locks, we can ensure that the locks are always acquired in the same
+order, therefore avoiding any deadlocks.
 
              MEMORY MAPPED FILES
              ===================
