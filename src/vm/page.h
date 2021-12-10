@@ -59,7 +59,7 @@ bool set_swap_supp_pt (struct supp_page_table *supp_page_table, void *page_addr,
 bool add_file_supp_pt (struct supp_page_table *supp_page_table, void *addr,
     struct file *file, int32_t start_byte, uint32_t read_bytes, uint32_t zero_bytes, bool writeable);
 struct page *find_page (struct supp_page_table *supp_page_table, void *page);
-bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address);
+bool load_page (struct page *page, uint32_t *pagedir, void *address);
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info);
 bool unmap_supp_pt(struct supp_page_table *supp_page_table, uint32_t *pagedir,
     void *addr, struct file *f, uint32_t offset, size_t bytes);

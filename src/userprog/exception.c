@@ -161,28 +161,41 @@ page_fault (struct intr_frame *f)
    {
       page_fault_error (user, f);
    }
+   struct page *page = find_page(t->supp_page_table, fault_page);
    
-   void* esp = user ? f->esp : t->esp;
+   void* esp = user ? f->esp : (void *) t->esp;
 
-   // Stack Growth
-   bool on_stack_frame = (esp <= fault_addr || fault_addr == esp - 4 || fault_addr == esp - 32);
-   bool is_stack_addr = (PHYS_BASE - MAX_STACK_SIZE <= fault_addr && fault_addr < PHYS_BASE);
-   if (on_stack_frame && is_stack_addr) 
+   // Grow the stack
+   bool grow_stack = (esp <= fault_addr || fault_addr == esp - 4 || fault_addr == esp - 32)
+                     && (is_user_vaddr(fault_addr) && PHYS_BASE - MAX_STACK_SIZE <= fault_addr);
+   if (grow_stack) 
    {
-      if (find_page (t->supp_page_table, fault_page) == NULL)
+      if (!page)
       {
          // printf("new page\n");
          add_zero_supp_pt (t->supp_page_table, fault_page);
          return;
       }
    }
-   // printf("load page\n");
-   if (!load_page(t->supp_page_table, t->pagedir, fault_page))
+
+   if(!page) 
    {
       page_fault_error (user, f);
    }
-#endif
 
+
+   if (!load_page(page, t->pagedir, fault_page))
+   {
+      page_fault_error (user, f);
+      printf ("Page fault at %p: %s error %s page in %s context.\n",
+         fault_addr,
+         not_present ? "not present" : "rights violation",
+         write ? "writing" : "reading",
+         user ? "user" : "kernel");
+   }
+   set_used (page->faddress, false);
+   
+#endif
 }
 
 

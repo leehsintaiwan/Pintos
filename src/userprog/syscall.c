@@ -77,7 +77,7 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   uint32_t syscall_no = *(uint32_t *) f->esp;
-  thread_current()->esp = f->esp;
+  thread_current()->esp = (uint32_t) f->esp;
   syscall_function[syscall_no](f);
 }
 
@@ -293,9 +293,12 @@ static void read (struct intr_frame *f)
         address < buffer + size; 
         address += PGSIZE)
     {
-      load_page (spt, thread_current()->pagedir, address);
-      
-      struct page *page = find_page (spt, address);
+      struct page *page = find_page(spt, address);
+      if (!page) 
+      {
+        exit_exception();
+      }
+      load_page (page, thread_current()->pagedir, address);
       set_used (page->faddress, true);
     }
     
@@ -362,9 +365,8 @@ static void write (struct intr_frame *f)
       address < buffer + size; 
       address += PGSIZE)
   {
-    load_page (spt, thread_current()->pagedir, address);
-    
-    struct page *page = find_page (spt, address);
+    struct page *page = find_page(spt, address);
+    load_page (page, thread_current()->pagedir, address);
     set_used (page->faddress, true);
   }
 

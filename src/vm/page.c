@@ -44,14 +44,12 @@ void destroy_supp_pt (struct supp_page_table *supp_page_table)
 bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *faddr, enum page_loc from, struct file_struct *file_info)
 {
   struct page *page = (struct page *) malloc(sizeof(struct page));
-  // printf("add_supp_pt %d\n", from);
   if (!page)
   {
-    // printf("exit exception\n");
     exit_exception ();
   }
 
-  // Set page attributes.
+  // Set page struct members.
   page->address = addr;
   page->faddress = faddr;
   page->page_from = from;
@@ -63,8 +61,7 @@ bool add_supp_pt (struct supp_page_table *supp_page_table, void *addr, void *fad
   if (old) 
   {
     struct page *old_page = hash_entry (old, struct page, elem);
-    // printf("%d\n", page->file_info->file_writeable);
-    // printf("testing old\n");
+
     page->file_info->file_writeable = old_page->file_info->file_writeable || page->file_info->file_writeable;
     if (old_page->page_from == FRAME)
     {
@@ -139,14 +136,8 @@ struct page *find_page (struct supp_page_table *supp_page_table, void *page)
 }
 
 /* Load page back on frame (into the memory). */
-bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void *address)
+bool load_page (struct page *page, uint32_t *pagedir, void *address)
 {
-  struct page *page = find_page(supp_page_table, address);
-  if(!page) 
-  {
-    return false;
-  }
-
   // If the page has already been loaded it will be on FRAME
   // Else the page will be put in a new frame
   if(page->page_from == FRAME) 
@@ -175,8 +166,8 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
     case EXECFILE:
       file_seek (page->file_info->file, page->file_info->file_start_byte);
 
-      int bytes_read = file_read (page->file_info->file, frame_page, page->file_info->file_read_bytes);
-      if (bytes_read != (int) page->file_info->file_read_bytes)
+      size_t bytes_read = file_read (page->file_info->file, frame_page, page->file_info->file_read_bytes);
+      if (bytes_read != page->file_info->file_read_bytes)
       {
         destroy_frame (frame_page, true);
         return false;
@@ -204,7 +195,6 @@ bool load_page (struct supp_page_table *supp_page_table, uint32_t *pagedir, void
 
   page->faddress = frame_page;
   page->page_from = FRAME;
-  set_used (frame_page, false);
   pagedir_set_dirty (pagedir, frame_page, false);
 
   return true;

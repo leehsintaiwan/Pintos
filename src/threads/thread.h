@@ -115,7 +115,7 @@ struct thread
 
     struct list mmap_list;                     /* Memory mapped files. */
 
-    uint8_t esp;  /* Stores the stack pointer, in case page fault occurs in the kernel. */
+    uint32_t esp;  /* Stores the stack pointer, in case page fault occurs in the kernel. */
 #endif
 
     /* Owned by thread.c. */
